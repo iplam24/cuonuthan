@@ -5,8 +5,19 @@ export const orderService = {
     return api.post('/orders', orderData);
   },
 
-  getOrderTracking(orderCode) {
-    return api.get(`/orders/tracking/${orderCode}`);
+  getOrderTracking(orderCode, options = {}) {
+    const params = {};
+    if (options.phone) params.phone = options.phone;
+    if (options.trackingToken) params.tracking_token = options.trackingToken;
+    const headers = {};
+    const localToken = localStorage.getItem(`tracking_${orderCode}`);
+    if (options.trackingToken || localToken) {
+      headers['x-tracking-token'] = options.trackingToken || localToken;
+    }
+    if (options.phone) {
+      headers['x-tracking-phone'] = options.phone;
+    }
+    return api.get(`/orders/tracking/${orderCode}`, { params, headers });
   },
 
   getMyOrders() {

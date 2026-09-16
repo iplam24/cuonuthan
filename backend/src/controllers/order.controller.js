@@ -485,7 +485,10 @@ export const getOrderTracking = async (req, res, next) => {
     const phone = req.headers['x-tracking-phone'] || req.query.phone;
 
     const [orders] = await db.query(
-      `SELECT * FROM orders WHERE order_code = ? LIMIT 1`,
+      `SELECT o.*, c.user_id as customer_user_id
+       FROM orders o
+       LEFT JOIN customers c ON o.customer_id = c.id
+       WHERE o.order_code = ? LIMIT 1`,
       [orderCode.trim()]
     );
 
@@ -573,6 +576,7 @@ export const getOrderTracking = async (req, res, next) => {
       payment: payments[0] || null,
       shipper,
       vietqr,
+      tracking_token: createTrackingToken(order.order_code, order.customer_phone),
     });
   } catch (err) {
     next(err);

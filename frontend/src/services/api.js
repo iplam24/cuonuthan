@@ -38,7 +38,11 @@ api.interceptors.response.use(
       const loginPath = isAdmin ? '/admin/login' : `/dang-nhap?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
       if (!window.location.pathname.includes('login')) window.location.href = loginPath;
     }
-    return Promise.reject(new Error(msg));
+    const enhancedError = new Error(msg);
+    enhancedError.status = error.response?.status;
+    enhancedError.statusCode = error.response?.status;
+    enhancedError.response = error.response;
+    return Promise.reject(enhancedError);
   }
 );
 

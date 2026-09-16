@@ -12,6 +12,7 @@ export function normalizePhone(value) {
 export function canAccessOrder({ user, trackingToken, phone, order }) {
   if (!order) return false;
   if (user && ['admin', 'staff'].includes(user.role)) return true;
+  if (user && user.userId && order.customer_user_id && Number(user.userId) === Number(order.customer_user_id)) return true;
   if (user && user.phone && normalizePhone(user.phone) === normalizePhone(order.customer_phone)) return true;
 
   const claim = trackingToken ? verifyToken(trackingToken) : null;

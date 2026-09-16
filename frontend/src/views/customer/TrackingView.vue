@@ -34,10 +34,44 @@
       </form>
     </div>
 
-    <!-- Order Tracking Display -->
-    <div v-if="error" class="rounded-3xl border border-rose-200 bg-rose-50/80 p-8 text-center shadow-xs" role="alert">
+    <!-- Order Tracking Display / Error / Verification -->
+    <!-- Phone Verification Required State -->
+    <div v-if="requiresPhone" class="rounded-3xl border border-amber-200 bg-amber-50/90 p-6 sm:p-8 text-center shadow-soft max-w-xl mx-auto space-y-4 fade-in">
+      <div class="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-600 mx-auto text-xl font-bold shadow-xs">
+        <ShieldCheck class="w-6 h-6" />
+      </div>
+      <div>
+        <h3 class="text-base font-bold text-slate-900">Xác minh số điện thoại người nhận</h3>
+        <p class="text-xs text-slate-600 mt-1 max-w-md mx-auto">
+          Đơn hàng <span class="font-mono font-bold text-rose-600">{{ inputCode }}</span> được bảo mật thông tin cá nhân. Vui lòng nhập số điện thoại đặt hàng để xem chi tiết tiến độ món ăn:
+        </p>
+      </div>
+      <form @submit.prevent="verifyWithPhone" class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+        <input
+          v-model="inputPhone"
+          type="tel"
+          placeholder="Nhập SĐT nhận hàng (VD: 0332302662)"
+          class="flex-1 px-4 py-3 rounded-xl border border-amber-300 bg-white text-slate-900 text-sm font-mono focus:outline-none focus:ring-4 focus:ring-amber-500/15 transition"
+          required
+          autofocus
+        />
+        <button
+          type="submit"
+          :disabled="loading"
+          class="bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold px-6 py-3 rounded-xl text-sm shadow-soft transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          <span>Xác nhận</span>
+        </button>
+      </form>
+      <div v-if="verifyError" class="text-xs text-rose-600 font-semibold">
+        {{ verifyError }}
+      </div>
+    </div>
+
+    <!-- Error Display -->
+    <div v-else-if="error" class="rounded-3xl border border-rose-200 bg-rose-50/80 p-8 text-center shadow-xs" role="alert">
       <p class="font-bold text-rose-800">{{ error }}</p>
-      <button @click="searchOrder" class="mt-3 rounded-xl bg-rose-600 hover:bg-rose-700 px-5 py-2 text-xs font-bold text-white shadow-soft transition">
+      <button @click="searchOrder()" class="mt-3 rounded-xl bg-rose-600 hover:bg-rose-700 px-5 py-2 text-xs font-bold text-white shadow-soft transition">
         Thử lại
       </button>
     </div>
@@ -304,6 +338,7 @@ import {
   CheckCircle2,
   Copy,
   Check,
+  ShieldCheck,
 } from 'lucide-vue-next';
 
 const route = useRoute();
@@ -311,6 +346,9 @@ const orderStore = useOrderStore();
 const settingsStore = useSettingsStore();
 
 const inputCode = ref(route.params.orderCode || '');
+const inputPhone = ref('');
+const requiresPhone = ref(false);
+const verifyError = ref('');
 const order = ref(null);
 const loading = ref(false);
 const error = ref('');
@@ -332,15 +370,27 @@ async function copyOrderCode() {
   }
 }
 
-async function searchOrder() {
+async function searchOrder(phoneOverride = '') {
   if (!inputCode.value.trim()) return;
   loading.value = true;
   error.value = '';
-  try {
-    const data = await orderStore.fetchOrderTracking(inputCode.value.trim());
-    order.value = data;
+  verifyError.value = '';
+  const code = inputCode.value.trim().toUpperCase();
+  const phone = phoneOverride || inputPhone.value.trim();
 
-    currentTrackingToken.value = localStorage.getItem(`tracking_${data.order_code}`) || '';
+  try {
+    const data = await orderStore.fetchOrderTracking(code, { phone: phone || undefined });
+    order.value = data;
+    requiresPhone.value = false;
+    verifyError.value = '';
+
+    if (data.tracking_token) {
+      localStorage.setItem(`tracking_${data.order_code}`, data.tracking_token);
+      currentTrackingToken.value = data.tracking_token;
+    } else {
+      currentTrackingToken.value = localStorage.getItem(`tracking_${data.order_code}`) || '';
+    }
+
     history.replaceState(null, '', `/tra-cuu/${encodeURIComponent(data.order_code)}`);
     socketService.joinOrder(data.order_code, { phone: data.customer_phone, trackingToken: currentTrackingToken.value || undefined });
 
@@ -353,11 +403,31 @@ async function searchOrder() {
       } catch {}
     }
   } catch (err) {
-    error.value = 'Không tìm thấy đơn hàng với mã này!';
     order.value = null;
+    const msg = err.message || '';
+    const status = err.status || err.response?.status;
+    const isAuthRequired = status === 403 || msg.includes('xác minh số điện thoại') || msg.includes('mã theo dõi');
+
+    if (isAuthRequired) {
+      requiresPhone.value = true;
+      if (phone) {
+        verifyError.value = 'Số điện thoại không khớp với người nhận đơn hàng này. Vui lòng kiểm tra lại!';
+      }
+    } else if (status === 404 || msg.includes('Không tìm thấy')) {
+      requiresPhone.value = false;
+      error.value = 'Không tìm thấy đơn hàng với mã này! Vui lòng kiểm tra lại mã đơn.';
+    } else {
+      requiresPhone.value = false;
+      error.value = msg || 'Có lỗi khi tra cứu đơn hàng, vui lòng thử lại!';
+    }
   } finally {
     loading.value = false;
   }
+}
+
+async function verifyWithPhone() {
+  if (!inputPhone.value.trim()) return;
+  await searchOrder(inputPhone.value.trim());
 }
 
 function formatDate(dateStr) {

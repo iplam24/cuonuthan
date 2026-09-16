@@ -51,4 +51,6 @@ test('order access permits phone verification and owner JWT claims', () => {
   assert.equal(canAccessOrder({ phone: '0901234568', order }), false);
   assert.equal(canAccessOrder({ user: { role: 'customer', phone: '0901234567' }, order }), true);
   assert.equal(canAccessOrder({ user: { role: 'staff' }, order }), true);
+  assert.equal(canAccessOrder({ user: { role: 'customer', userId: 4 }, order: { ...order, customer_user_id: 4 } }), true);
+  assert.equal(canAccessOrder({ user: { role: 'customer', userId: 5 }, order: { ...order, customer_user_id: 4 } }), false);
 });

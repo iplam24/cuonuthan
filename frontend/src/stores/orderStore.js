@@ -33,11 +33,11 @@ export const useOrderStore = defineStore('order', {
       }
     },
 
-    async fetchOrderTracking(orderCode) {
+    async fetchOrderTracking(orderCode, options = {}) {
       this.loading = true;
       this.error = null;
       try {
-        const response = await orderService.getOrderTracking(orderCode);
+        const response = await orderService.getOrderTracking(orderCode, options);
         this.trackingOrder = response.data;
         return response.data;
       } catch (err) {

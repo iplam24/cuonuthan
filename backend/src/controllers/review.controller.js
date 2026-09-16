@@ -27,7 +27,10 @@ export const createOrderReview = async (req, res, next) => {
     const numVeggie = Math.min(5, Math.max(1, parseInt(veggie_freshness_score, 10) || 5));
 
     const [orders] = await db.query(
-      `SELECT * FROM orders WHERE order_code = ? LIMIT 1`,
+      `SELECT o.*, c.user_id as customer_user_id
+       FROM orders o
+       LEFT JOIN customers c ON o.customer_id = c.id
+       WHERE o.order_code = ? LIMIT 1`,
       [orderCode.trim()]
     );
 

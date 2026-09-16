@@ -31,7 +31,7 @@ io.on('connection', (socket) => {
   socket.on('join:order', async (orderCode, credentials = {}) => {
     if (!orderCode || typeof orderCode !== 'string' || orderCode.length > 64) return;
     try {
-      const [orders] = await db.query('SELECT order_code, customer_phone FROM orders WHERE order_code = ? LIMIT 1', [orderCode.trim()]);
+      const [orders] = await db.query('SELECT o.order_code, o.customer_phone, c.user_id as customer_user_id FROM orders o LEFT JOIN customers c ON o.customer_id = c.id WHERE o.order_code = ? LIMIT 1', [orderCode.trim()]);
       if (orders[0] && canAccessOrder({ user: socket.user, trackingToken: credentials.trackingToken || socket.handshake.auth?.trackingToken, phone: credentials.phone, order: orders[0] })) {
         socket.join(`order_${orders[0].order_code}`);
       } else socket.emit('error:auth', { message: 'Không có quyền theo dõi đơn hàng này.' });
