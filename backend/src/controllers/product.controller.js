@@ -12,6 +12,8 @@ export const getProducts = async (req, res, next) => {
       is_active,
       is_out_of_stock,
       search,
+      min_price,
+      max_price,
       sort = 'sort_order_asc',
       page = 1,
       limit = 50,
@@ -56,6 +58,16 @@ export const getProducts = async (req, res, next) => {
     if (search) {
       query += ` AND (p.name LIKE ? OR p.description LIKE ?)`;
       params.push(`%${search}%`, `%${search}%`);
+    }
+
+    if (min_price !== undefined && !isNaN(Number(min_price))) {
+      query += ` AND COALESCE(NULLIF(p.sale_price, 0), p.price) >= ?`;
+      params.push(Number(min_price));
+    }
+
+    if (max_price !== undefined && !isNaN(Number(max_price))) {
+      query += ` AND COALESCE(NULLIF(p.sale_price, 0), p.price) <= ?`;
+      params.push(Number(max_price));
     }
 
     // Sorting
