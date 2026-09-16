@@ -1,0 +1,202 @@
+// Customers & Shippers CRUD with Axios
+async function loadCustomers() {
+  try {
+    const params = {
+      page: customerPagination.page,
+      limit: customerPagination.limit
+    };
+    if (customerSearch.value.trim()) params.search = customerSearch.value.trim();
+    const res = await api.get('/admin/customers', { params });
+    if (res.success && res.data) {
+      customersList.value = res.data.items || [];
+      if (res.data.pagination) {
+        customerPagination.total = res.data.pagination.total;
+        customerPagination.totalPages = res.data.pagination.totalPages;
+        customerPagination.page = res.data.pagination.page;
+      }
+    }
+  } catch (e) { notify(getErrorMessage(e), 'error'); }
+}
+
+function changeCustomerPage(p) {
+  customerPagination.page = p;
+  loadCustomers();
+}
+
+async function loadShippers() {
+  try {
+    const res = await api.get('/admin/shippers');
+    if (res.success) shippersList.value = res.data || [];
+  } catch (e) { notify(getErrorMessage(e), 'error'); }
+}
+
+function openAddShipperModal() {
+  shipperEditingId.value = null;
+  shipperForm.full_name = '';
+  shipperForm.phone = '';
+  shipperForm.vehicle_plate = '';
+  showShipperModal.value = true;
+}
+
+function openEditShipperModal(s) {
+  shipperEditingId.value = s.id;
+  shipperForm.full_name = s.full_name || s.name;
+  shipperForm.phone = s.phone;
+  shipperForm.vehicle_plate = s.vehicle_plate || '';
+  showShipperModal.value = true;
+}
+
+async function saveShipperForm() {
+  try {
+    const res = shipperEditingId.value
+      ? await api.put(`/admin/shippers/${shipperEditingId.value}`, shipperForm)
+      : await api.post('/admin/shippers', shipperForm);
+
+    if (res.success) {
+      showShipperModal.value = false;
+      loadShippers();
+    } else {
+      notify(res.message || 'Lỗi lưu tài xế', 'error');
+    }
+  } catch(e) {
+    notify(e.response?.data?.message || 'Lỗi kết nối máy chủ', 'error');
+  }
+}
+
+async function deleteShipper(s) {
+  if (Number(s.active_deliveries || 0) > 0) {
+    return notify(`Tài xế "${s.full_name || s.name}" đang có ${s.active_deliveries} đơn hàng đang giao! Vui lòng chuyển đơn trước khi xóa.`, 'warning');
+  }
+  const confirmed = await askConfirm({
+    title: 'Xóa tài xế?',
+    message: `Bạn có chắc muốn xóa tài xế "${s.full_name || s.name}" khỏi hệ thống?`,
+    confirmText: 'Xóa vĩnh viễn',
+    danger: true
+  });
+  if (!confirmed) return;
+  try {
+    const res = await api.delete(`/admin/shippers/${s.id}`);
+    if (res.success) {
+      notify('Đã xóa tài xế thành công.');
+      loadShippers();
+    } else {
+      notify(res.message || 'Lỗi xóa tài xế', 'error');
+    }
+  } catch(e) {
+    notify(getErrorMessage(e, 'Lỗi kết nối máy chủ'), 'error');
+  }
+}
+
+async function toggleShipperActive(s) {
+  if (s.is_active && Number(s.active_deliveries || 0) > 0) {
+    const ok = await askConfirm({
+      title: 'Tạm ngưng tài xế đang giao đơn?',
+      message: `Tài xế đang có ${s.active_deliveries} đơn hàng đang giao. Bạn vẫn muốn tạm ngưng?`,
+      confirmText: 'Vẫn tạm ngưng',
+      danger: true
+    });
+    if (!ok) return;
+  }
+  const key = `shipper-toggle-${s.id}`;
+  if (isPending(key)) return;
+  setPending(key, true);
+  try {
+    await api.patch(`/admin/shippers/${s.id}/toggle`);
+    s.is_active = s.is_active ? 0 : 1;
+    notify(`Đã ${s.is_active ? 'kích hoạt' : 'tạm ngưng'} tài xế ${s.full_name || s.name}.`);
+  } catch(e) {
+    notify(getErrorMessage(e, 'Lỗi cập nhật trạng thái tài xế'), 'error');
+  } finally {
+    setPending(key, false);
+  }
+}
+
+// Coupons with Axios
+async function loadCoupons() {
+  try {
+    const res = await api.get('/coupons');
+    if (res.success) couponsList.value = res.data || [];
+  } catch (e) { notify(getErrorMessage(e), 'error'); }
+}
+
+function openAddCouponModal() {
+  couponForm.code = '';
+  couponForm.description = '';
+  couponForm.discount_type = 'fixed_amount';
+  couponForm.discount_value = 20000;
+  couponForm.min_order_value = 100000;
+  couponForm.end_date = '';
+  showCouponModal.value = true;
+}
+
+async function saveCouponForm() {
+  try {
+    const res = await api.post('/coupons', couponForm);
+    if (res.success) {
+      showCouponModal.value = false;
+      loadCoupons();
+    } else {
+      notify(res.message || 'Lỗi tạo mã giảm giá', 'error');
+    }
+  } catch(e) {
+    notify(e.response?.data?.message || 'Lỗi kết nối máy chủ', 'error');
+  }
+}
+
+async function toggleCouponActive(cp) {
+  try {
+    await api.patch(`/coupons/${cp.id}/toggle`);
+    cp.is_active = cp.is_active ? 0 : 1;
+  } catch (e) { notify(getErrorMessage(e), 'error'); }
+}
+
+// Settings API with Axios
+function extractZaloId(rawZalo) {
+  if (!rawZalo) return '';
+  const trimmed = String(rawZalo).trim();
+  const match = trimmed.match(/^https?:\/\/(?:www\.)?zalo\.me\/([^/?#]+)/i);
+  return match ? match[1] : trimmed;
+}
+
+async function loadSettings() {
+  try {
+    const res = await api.get('/settings');
+    if (res.success && res.data) {
+      settingsForm.brand_name = res.data.brand_name || res.data.app_name || 'Út Hân Cuốn';
+      settingsForm.hotline = res.data.hotline || '0988.888.888';
+      settingsForm.address = res.data.address || res.data.store_address || '';
+      settingsForm.email = res.data.email || '';
+      settingsForm.business_hours = res.data.business_hours || '';
+      settingsForm.store_status = res.data.store_status || 'Bếp Út Hân đang mở cửa';
+      settingsForm.delivery_time = res.data.delivery_time || '25–35 phút';
+      settingsForm.facebook_url = res.data.facebook_url || res.data.facebook || '';
+      settingsForm.zalo_url = extractZaloId(res.data.zalo_url || res.data.zalo || '');
+      settingsForm.bank_id = res.data.bank_name || res.data.bank_id || 'MB';
+      settingsForm.bank_account_no = res.data.bank_account_number || res.data.bank_account_no || '0988888888';
+      settingsForm.bank_account_name = res.data.bank_account_holder || res.data.bank_account_name || 'NGUYEN THI HAN';
+    }
+  } catch (e) { notify(getErrorMessage(e), 'error'); }
+}
+
+async function saveSettingsForm() {
+  try {
+    const payload = {
+      ...settingsForm,
+      facebook_url: settingsForm.facebook_url ? settingsForm.facebook_url.trim() : '',
+      zalo_url: extractZaloId(settingsForm.zalo_url),
+      address: settingsForm.address ? settingsForm.address.trim() : '',
+      email: settingsForm.email ? settingsForm.email.trim() : '',
+      business_hours: settingsForm.business_hours ? settingsForm.business_hours.trim() : '',
+      store_status: settingsForm.store_status ? settingsForm.store_status.trim() : 'Bếp Út Hân đang mở cửa',
+      delivery_time: settingsForm.delivery_time ? settingsForm.delivery_time.trim() : '25–35 phút'
+    };
+    const res = await api.put('/settings/admin', payload);
+    if (res.success) {
+      notify('Đã cập nhật cấu hình thương hiệu, liên hệ & VietQR thành công!');
+    } else {
+      notify(res.message || 'Lỗi lưu cấu hình', 'error');
+    }
+  } catch(e) {
+    notify(e.response?.data?.message || 'Lỗi kết nối máy chủ', 'error');
+  }
+}

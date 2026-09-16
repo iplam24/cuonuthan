@@ -1,0 +1,39 @@
+<!-- MODALS & HIDDEN POS THERMAL 80MM PRINT TEMPLATES -->
+
+<!-- 1. ORDER DETAIL MODAL -->
+<%- include('modal-order') %>
+
+<!-- 2. PRODUCT MODAL (ADD / EDIT) -->
+<%- include('modal-product') %>
+
+<!-- 3. CATEGORY MODAL -->
+<%- include('modal-category') %>
+
+<!-- 4. SHIPPER MODAL (ADD & EDIT) -->
+<%- include('modal-shipper') %>
+
+<!-- 5. COUPON MODAL -->
+<%- include('modal-coupon') %>
+
+<!-- SHARED FEEDBACK PRIMITIVES -->
+<div class="fixed right-4 top-20 z-[80] w-[min(24rem,calc(100vw-2rem))] space-y-2" aria-live="polite" aria-atomic="true">
+  <div v-for="toast in toasts" :key="toast.id" class="rounded-xl border bg-white p-4 shadow-md flex gap-3" :class="toast.type === 'error' ? 'border-red-200 text-red-800' : toast.type === 'warning' ? 'border-amber-200 text-slate-700' : toast.type === 'info' ? 'border-blue-200 text-blue-800' : 'border-emerald-200 text-emerald-800'">
+    <i class="fa-solid mt-0.5" :class="toast.type === 'error' ? 'fa-circle-xmark' : toast.type === 'warning' ? 'fa-triangle-exclamation' : toast.type === 'info' ? 'fa-circle-info' : 'fa-circle-check'"></i>
+    <p class="flex-1 text-xs font-semibold leading-relaxed">{{ toast.message }}</p>
+    <button @click="dismissToast(toast.id)" class="w-7 h-7 rounded-lg hover:bg-black/5" aria-label="Đóng thông báo"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+</div>
+
+<div v-if="confirmDialog.open" class="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4" @click.self="resolveConfirm(false)" role="presentation">
+  <section role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-description" class="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+    <h2 id="confirm-title" class="text-lg font-bold text-gray-900">{{ confirmDialog.title }}</h2>
+    <p id="confirm-description" class="mt-2 text-sm text-gray-600 leading-relaxed">{{ confirmDialog.message }}</p>
+    <div class="mt-6 flex justify-end gap-2">
+      <button @click="resolveConfirm(false)" class="px-4 py-2 rounded-xl bg-gray-100 text-xs font-bold">Quay lại</button>
+      <button autofocus @click="resolveConfirm(true)" class="px-4 py-2 rounded-xl text-white text-xs font-bold" :class="confirmDialog.danger ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary-dark'">{{ confirmDialog.confirmText }}</button>
+    </div>
+  </section>
+</div>
+
+<!-- 6. HIDDEN THERMAL POS 80MM RECEIPT & KITCHEN PRINT TEMPLATE -->
+<%- include('pos-print') %>

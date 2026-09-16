@@ -1,0 +1,182 @@
+// Orders API with Axios & Realtime Operations
+async function loadDashboard(silent = false) {
+  if (!silent) { loading.dashboard = true; errors.dashboard = ''; }
+  try {
+    const res = await api.get('/admin/dashboard');
+    if (res.success) { stats.value = res.data; lastUpdated.value = new Date(); }
+  } catch (e) {
+    errors.dashboard = getErrorMessage(e, 'Không thể tải dữ liệu tổng quan.');
+    notify(errors.dashboard, 'error');
+  } finally { if (!silent) loading.dashboard = false; }
+}
+
+async function loadOrders(options = {}) {
+  const silent = Boolean(options.silent);
+  if (!silent) { loading.orders = true; errors.orders = ''; }
+  try {
+    const limit = orderViewMode.value === 'kanban' ? 100 : orderPagination.limit;
+    const params = {
+      page: orderPagination.page,
+      limit
+    };
+    const dateRange = getDateRange();
+    if (dateRange.start_date) params.start_date = dateRange.start_date;
+    if (dateRange.end_date) params.end_date = dateRange.end_date;
+    if (orderSearch.value) params.search = orderSearch.value;
+    if (orderFilterStatus.value) params.status = orderFilterStatus.value;
+    if (orderFilterPayment.value) params.payment_status = orderFilterPayment.value;
+
+    const res = await api.get('/admin/orders', { params });
+    if (res.success && res.data) {
+      ordersList.value = res.data.items || [];
+      if (res.data.pagination) {
+        orderPagination.total = res.data.pagination.total;
+        orderPagination.totalPages = res.data.pagination.totalPages;
+        orderPagination.page = res.data.pagination.page;
+      }
+      lastUpdated.value = new Date();
+    }
+  } catch (e) {
+    errors.orders = getErrorMessage(e, 'Không thể tải danh sách đơn hàng.');
+    notify(errors.orders, 'error');
+  } finally { if (!silent) loading.orders = false; }
+}
+
+function changeOrderPage(p) {
+  orderPagination.page = p;
+  loadOrders();
+}
+
+function handleOrderSearch() {
+  orderPagination.page = 1;
+  loadOrders();
+}
+
+function handleOrderFilter() {
+  orderPagination.page = 1;
+  loadOrders();
+}
+
+function getOrdersByStatus(st) {
+  return ordersList.value.filter(o => (o.status || '').toLowerCase() === st);
+}
+
+function getVisibleOrdersByStatus(st) {
+  const list = getOrdersByStatus(st);
+  if (st === 'completed' && !showAllCompleted.value) {
+    return list.slice(0, 6);
+  }
+  return list;
+}
+
+function viewCompletedInTable() {
+  orderViewMode.value = 'table';
+  orderFilterStatus.value = 'completed';
+  orderPagination.page = 1;
+  loadOrders();
+}
+
+async function advanceStatus(id, newStatus, note = '') {
+  const order = ordersList.value.find((item) => Number(item.id) === Number(id)) || activeOrder.value;
+  if (!canMoveOrder(order, newStatus)) {
+    notify(`Không thể chuyển từ ${getStatusText(order?.status)} sang ${getStatusText(newStatus)}.`, 'warning');
+    return false;
+  }
+  if (newStatus === 'cancelled' && !note) {
+    notify('Hủy đơn cần lý do và xác nhận trong chi tiết đơn.', 'warning');
+    return false;
+  }
+  const key = `order-${id}`;
+  if (isPending(key)) return false;
+  setPending(key, true);
+  try {
+    await api.put(`/admin/orders/${id}/status`, { status: newStatus, note });
+    notify(`Đã chuyển đơn sang ${getStatusText(newStatus)}.`);
+    await Promise.all([loadOrders({ silent: true }), loadDashboard(true)]);
+    return true;
+  } catch (e) {
+    notify(getErrorMessage(e, 'Không thể cập nhật trạng thái đơn.'), 'error');
+    return false;
+  } finally { setPending(key, false); }
+}
+
+// Drag & drop handlers
+function onDragStart(event, order) {
+  draggingOrderId.value = order.id;
+  draggedOrder.value = order;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', String(order.id));
+}
+
+function onDragEnd() {
+  draggingOrderId.value = null;
+  draggedOrder.value = null;
+}
+
+function onDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  if (!event.currentTarget.classList.contains('drag-over')) {
+    event.currentTarget.classList.add('drag-over');
+  }
+}
+
+function onDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+
+function onDrop(event, targetStatus) {
+  event.currentTarget.classList.remove('drag-over');
+  if (!draggedOrder.value) return;
+  const currentStatus = String(draggedOrder.value.status || '').toLowerCase();
+  if (currentStatus === targetStatus) return;
+  if (!canMoveOrder(draggedOrder.value, targetStatus)) {
+    notify(`Không được phép kéo nhảy từ "${getStatusText(currentStatus)}" sang "${getStatusText(targetStatus)}"`, 'warning');
+    return;
+  }
+  advanceStatus(draggedOrder.value.id, targetStatus);
+}
+
+// Order modal & POS thermal print
+async function openOrderModal(ord, preserve = false) {
+  if (!ord) return;
+  if (!preserve) activeOrder.value = { ...ord };
+  orderDetailLoading.value = true;
+  try {
+    const res = await api.get(`/admin/orders/${ord.id}`);
+    if (res.success && res.data) {
+      activeOrder.value = {
+        ...res.data,
+        status: (res.data.status || '').toLowerCase(),
+        payment_status: (res.data.payment_status || '').toLowerCase(),
+      };
+      activeOrderHistory.value = res.data.history || [];
+      activeOrderNotes.value = res.data.admin_notes || [];
+    }
+  } catch (error) {
+    notify(getErrorMessage(error, 'Không thể tải chi tiết đầy đủ của đơn hàng.'), 'warning');
+  } finally {
+    orderDetailLoading.value = false;
+  }
+}
+
+function triggerPosPrint(ord, mode) {
+  printData.value = ord;
+  printMode.value = mode;
+  setTimeout(() => {
+    window.print();
+  }, 200);
+}
+
+async function assignShipperOrder(ord) {
+  const key = `assign-${ord.id}`;
+  setPending(key, true);
+  try {
+    await api.put(`/admin/orders/${ord.id}/assign-shipper`, { shipper_id: ord.shipper_id });
+    notify('Đã gán tài xế thành công.');
+    await loadShippers();
+  } catch (e) {
+    notify(getErrorMessage(e, 'Không thể gán tài xế.'), 'error');
+    await openOrderModal(ord, true);
+  } finally { setPending(key, false); }
+}

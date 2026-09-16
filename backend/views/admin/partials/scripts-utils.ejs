@@ -1,0 +1,266 @@
+// Axios HTTP Client Instance with Auth & Interceptors
+const api = axios.create({
+  baseURL: '/api/v1',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('uthan_token');
+  if (token) {
+    config.headers.Authorization = 'Bearer ' + token;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('uthan_token');
+      localStorage.removeItem('uthan_user');
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Ding-Dong Web Audio Bell
+function playOrderBell() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(587.33, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.8);
+  } catch (e) {
+    console.warn('Không thể phát âm báo đơn mới:', e);
+  }
+}
+
+function getErrorMessage(error, fallback = 'Có lỗi xảy ra. Vui lòng thử lại.') {
+  return error?.response?.data?.message || error?.message || fallback;
+}
+
+function notify(message, type = 'success') {
+  const id = Date.now() + Math.random();
+  toasts.value.push({ id, message, type });
+  window.setTimeout(() => dismissToast(id), 4500);
+}
+
+function dismissToast(id) {
+  toasts.value = toasts.value.filter((toast) => toast.id !== id);
+}
+
+function askConfirm(options) {
+  return new Promise((resolve) => {
+    confirmDialog.value = {
+      open: true,
+      title: options.title || 'Xác nhận thao tác',
+      message: options.message || 'Bạn có chắc muốn tiếp tục?',
+      confirmText: options.confirmText || 'Xác nhận',
+      danger: Boolean(options.danger),
+      resolve
+    };
+  });
+}
+
+function resolveConfirm(accepted) {
+  const resolver = confirmDialog.value.resolve;
+  confirmDialog.value.open = false;
+  confirmDialog.value.resolve = null;
+  if (resolver) resolver(accepted);
+}
+
+function setPending(key, value) {
+  pending[key] = value;
+}
+
+async function refreshDashboard() { return loadDashboard(); }
+
+async function openCustomerDetail(customer) {
+  customerDetailId.value = customer?.id || null;
+  customerOrders.value = [];
+  if (!customerDetailId.value) return;
+  customerOrdersLoading.value = true;
+  try {
+    const res = await api.get(`/admin/customers/${customerDetailId.value}/orders`);
+    if (res.success) customerOrders.value = res.data?.items || res.data || [];
+  } catch (error) {
+    notify(getErrorMessage(error, 'Không thể tải lịch sử khách hàng.'), 'error');
+  } finally { customerOrdersLoading.value = false; }
+}
+function closeCustomerDetail() { customerDetailId.value = null; customerOrders.value = []; }
+async function submitAdminNote() {
+  if (!activeOrder.value || !adminNoteInput.value.trim()) return;
+  adminNoteSubmitting.value = true;
+  try {
+    const res = await api.post(`/admin/orders/${activeOrder.value.id}/notes`, { note: adminNoteInput.value.trim() });
+    if (res.success) { activeOrderNotes.value.unshift(res.data); adminNoteInput.value = ''; notify('Đã thêm ghi chú nội bộ.'); }
+  } catch (error) { notify(getErrorMessage(error, 'Không thể thêm ghi chú.'), 'error'); }
+  finally { adminNoteSubmitting.value = false; }
+}
+async function cancelActiveOrder() {
+  if (!activeOrder.value || !canMoveOrder(activeOrder.value, 'cancelled')) return notify('Đơn này không còn được phép hủy.', 'warning');
+  if (!cancelReasonInput.value.trim()) return notify('Vui lòng nhập lý do hủy.', 'warning');
+  const ok = await askConfirm({ title: 'Hủy đơn hàng?', message: 'Thao tác này không thể hoàn tác.', confirmText: 'Hủy đơn', danger: true });
+  if (!ok) return;
+  cancelSubmitting.value = true;
+  try { await advanceStatus(activeOrder.value.id, 'cancelled', cancelReasonInput.value.trim()); cancelReasonInput.value = ''; activeOrder.value = null; }
+  catch (error) { notify(getErrorMessage(error, 'Không thể hủy đơn.'), 'error'); }
+  finally { cancelSubmitting.value = false; }
+}
+function startEditCategory(cat) { editingCategoryId.value = cat.id; categoryEditingName.value = cat.name; }
+async function saveCategoryEdit() {
+  if (!categoryEditingName.value.trim() || !editingCategoryId.value) return;
+  try { await api.put(`/categories/admin/${editingCategoryId.value}`, { name: categoryEditingName.value.trim() }); notify('Đã cập nhật danh mục.'); cancelCategoryEdit(); await loadCategories(); }
+  catch (error) { notify(getErrorMessage(error, 'Không thể cập nhật danh mục.'), 'error'); }
+}
+function cancelCategoryEdit() { editingCategoryId.value = null; categoryEditingName.value = ''; }
+function onProductImageChange(event) { const file = event.target.files?.[0]; if (file) { productImagePreview.value = URL.createObjectURL(file); notify('Đã xem trước ảnh. Hãy lưu URL ảnh sau khi upload.', 'info'); } }
+
+
+function isPending(key) {
+  return Boolean(pending[key]);
+}
+
+const ORDER_TRANSITIONS = Object.freeze({
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['preparing', 'cancelled'],
+  preparing: ['ready_for_pickup'],
+  ready_for_pickup: ['delivering'],
+  delivering: ['completed'],
+  completed: [],
+  cancelled: []
+});
+
+function allowedOrderStatuses(order) {
+  return ORDER_TRANSITIONS[String(order?.status || '').toLowerCase()] || [];
+}
+
+function canMoveOrder(order, targetStatus) {
+  return allowedOrderStatuses(order).includes(String(targetStatus || '').toLowerCase());
+}
+
+function debounce(fn, wait = 350) {
+  let timer;
+  return (...args) => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => fn(...args), wait);
+  };
+}
+
+function formatDate(d) {
+  if (!d) return 'Không giới hạn';
+  return new Date(d).toLocaleDateString('vi-VN');
+}
+
+// Date range calculation for orders
+function getDateRange() {
+  const today = new Date().toISOString().split('T')[0];
+  if (orderCustomDate.value) {
+    return { start_date: orderCustomDate.value, end_date: orderCustomDate.value };
+  }
+  if (orderDatePreset.value === 'today') {
+    return { start_date: today, end_date: today };
+  }
+  if (orderDatePreset.value === 'yesterday') {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    const yStr = y.toISOString().split('T')[0];
+    return { start_date: yStr, end_date: yStr };
+  }
+  if (orderDatePreset.value === '7days') {
+    const past = new Date();
+    past.setDate(past.getDate() - 6);
+    return { start_date: past.toISOString().split('T')[0], end_date: today };
+  }
+  return { start_date: '', end_date: '' };
+}
+
+function setDatePreset(p) {
+  orderDatePreset.value = p;
+  orderCustomDate.value = '';
+  orderPagination.page = 1;
+  loadOrders();
+}
+
+function onCustomDateChange() {
+  if (orderCustomDate.value) {
+    orderDatePreset.value = '';
+    orderPagination.page = 1;
+    loadOrders();
+  }
+}
+
+function setOrderViewMode(m) {
+  orderViewMode.value = m;
+  loadOrders();
+}
+
+// Formatters
+function formatVND(amt) {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amt || 0);
+}
+
+function formatVNDShort(amt) {
+  if (!amt) return '0đ';
+  if (amt >= 1000000) return (amt / 1000000).toFixed(1) + 'M';
+  if (amt >= 1000) return (amt / 1000).toFixed(0) + 'k';
+  return amt + 'đ';
+}
+
+function formatTime(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDateTime(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+}
+
+function getStatusText(st) {
+  const map = { pending: 'Chờ duyệt', confirmed: 'Đã nhận', preparing: 'Bếp nấu', delivering: 'Đang giao', completed: 'Hoàn tất', cancelled: 'Đã hủy' };
+  return map[(st || '').toLowerCase()] || st;
+}
+
+function getStatusBadge(st) {
+  const map = {
+    pending: 'bg-amber-50 text-amber-800 border border-amber-300',
+    confirmed: 'bg-blue-100 text-blue-800 border border-blue-300',
+    preparing: 'bg-purple-100 text-purple-800 border border-purple-300',
+    delivering: 'bg-orange-100 text-orange-800 border border-orange-300',
+    completed: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+    cancelled: 'bg-red-100 text-red-800 border border-red-300'
+  };
+  return map[(st || '').toLowerCase()] || 'bg-gray-100 text-gray-800';
+}
+
+function getChartHeight(rev) {
+  const max = Math.max(...(stats.value?.revenue_7_days || []).map(d => Number(d.revenue) || 0), 1000000);
+  return Math.round(((Number(rev) || 0) / max) * 150) + 12;
+}
+
+function toggleSound() {
+  soundEnabled.value = !soundEnabled.value;
+}
+
+function clearNewOrdersBadge() {
+  newOrdersCount.value = 0;
+}
+
+function logout() {
+  localStorage.removeItem('uthan_token');
+  localStorage.removeItem('uthan_user');
+  window.location.href = '/admin/login';
+}

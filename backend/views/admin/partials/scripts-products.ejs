@@ -1,0 +1,167 @@
+// Products CRUD with Axios & 1-Click Stock
+async function loadProducts() {
+  loading.products = true; errors.products = '';
+  try {
+    const params = {
+      page: productPagination.page,
+      limit: productPagination.limit
+    };
+    if (productSearch.value) params.search = productSearch.value;
+    if (productFilterCategory.value) params.category_id = productFilterCategory.value;
+
+    const res = await api.get('/products', { params });
+    if (res.success && res.data) {
+      productsList.value = res.data.items || [];
+      if (res.data.pagination) {
+        productPagination.total = res.data.pagination.total;
+        productPagination.totalPages = res.data.pagination.totalPages;
+        productPagination.page = res.data.pagination.page;
+      }
+    }
+  } catch (e) {
+    errors.products = getErrorMessage(e, 'Không thể tải danh sách món ăn.');
+    notify(errors.products, 'error');
+  } finally { loading.products = false; }
+}
+
+function changeProductPage(p) {
+  productPagination.page = p;
+  loadProducts();
+}
+
+function handleProductSearch() {
+  productPagination.page = 1;
+  loadProducts();
+}
+
+function handleProductFilter() {
+  productPagination.page = 1;
+  loadProducts();
+}
+
+async function toggleProductStock(p) {
+  const key = `product-stock-${p.id}`;
+  if (isPending(key)) return;
+  setPending(key, true);
+  try {
+    await api.patch(`/products/admin/${p.id}/toggle-stock`, { field: 'is_out_of_stock' });
+    p.is_out_of_stock = p.is_out_of_stock ? 0 : 1;
+    notify(`Đã cập nhật kho cho ${p.name}.`);
+  } catch (e) {
+    notify(getErrorMessage(e, 'Không thể cập nhật trạng thái kho.'), 'error');
+  } finally { setPending(key, false); }
+}
+
+function openAddProductModal() {
+  productEditingId.value = null;
+  productForm.name = '';
+  productForm.category_id = categoriesList.value[0]?.id || '';
+  productForm.price = 50000;
+  productForm.original_price = null;
+  productForm.unit = 'phần';
+  productForm.short_description = '';
+  productForm.image_url = '';
+  productForm.is_featured = 0;
+  productForm.is_out_of_stock = 0;
+  productForm.is_side_dish = 0;
+  showProductModal.value = true;
+}
+
+function openEditProductModal(p) {
+  productEditingId.value = p.id;
+  productForm.name = p.name;
+  productForm.category_id = p.category_id;
+  productForm.price = p.price;
+  productForm.original_price = p.original_price;
+  productForm.unit = p.unit || 'phần';
+  productForm.short_description = p.short_description || p.description || '';
+  productForm.image_url = p.primary_image || '';
+  productForm.is_featured = p.is_featured ? 1 : 0;
+  productForm.is_out_of_stock = p.is_out_of_stock ? 1 : 0;
+  productForm.is_side_dish = p.is_side_dish ? 1 : 0;
+  showProductModal.value = true;
+}
+
+async function saveProductForm() {
+  try {
+    const payload = {
+      name: productForm.name,
+      category_id: productForm.category_id,
+      price: productForm.price,
+      sale_price: productForm.original_price,
+      unit: productForm.unit,
+      short_description: productForm.short_description,
+      is_featured: productForm.is_featured,
+      is_available: productForm.is_out_of_stock ? 0 : 1,
+      is_side_dish: productForm.is_side_dish ? 1 : 0,
+      image_url: productForm.image_url
+    };
+    const res = productEditingId.value
+      ? await api.put(`/products/admin/${productEditingId.value}`, payload)
+      : await api.post('/products/admin', payload);
+
+    if (res.success) {
+      showProductModal.value = false;
+      loadProducts();
+    } else {
+      notify(res.message || 'Lỗi lưu món ăn', 'error');
+    }
+  } catch(e) {
+    notify(e.response?.data?.message || 'Lỗi kết nối máy chủ', 'error');
+  }
+}
+
+async function deleteProduct(p) {
+  const confirmed = await askConfirm({ title: 'Xóa món ăn?', message: `Bạn có chắc muốn xóa món "${p.name}" khỏi thực đơn?`, confirmText: 'Xóa vĩnh viễn', danger: true });
+  if (!confirmed) return;
+  try {
+    const res = await api.delete(`/products/admin/${p.id}`);
+    if (res.success) {
+      loadProducts();
+    } else {
+      notify(res.message || 'Lỗi xóa món', 'error');
+    }
+  } catch(e) {
+    notify(e.response?.data?.message || 'Lỗi kết nối máy chủ', 'error');
+  }
+}
+
+// Categories Management with Axios
+async function loadCategories() {
+  try {
+    const res = await api.get('/categories/admin/all');
+    if (res.success) categoriesList.value = res.data || [];
+  } catch (e) {
+    notify(getErrorMessage(e, 'Không thể tải danh mục.'), 'error');
+  }
+}
+
+async function createCategorySubmit() {
+  if (!newCategoryName.value.trim()) return;
+  try {
+    const res = await api.post('/categories/admin', { name: newCategoryName.value.trim() });
+    if (res.success) {
+      newCategoryName.value = '';
+      loadCategories();
+    } else {
+      notify(res.message || 'Lỗi thêm danh mục', 'error');
+    }
+  } catch(e) {
+    notify(e.response?.data?.message || 'Lỗi kết nối máy chủ', 'error');
+  }
+}
+
+async function deleteCategory(cat) {
+  const confirmed = await askConfirm({ title: 'Xóa danh mục?', message: `Bạn có chắc muốn xóa danh mục "${cat.name}"?`, confirmText: 'Xóa danh mục', danger: true });
+  if (!confirmed) return;
+  try {
+    const res = await api.delete(`/categories/admin/${cat.id}`);
+    if (res.success) {
+      loadCategories();
+    } else {
+      notify(res.message || 'Lỗi xóa danh mục', 'error');
+    }
+  } catch(e) {
+    notify(e.response?.data?.message || 'Lỗi kết nối máy chủ', 'error');
+  }
+}

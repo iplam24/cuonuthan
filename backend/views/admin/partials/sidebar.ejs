@@ -1,0 +1,36 @@
+<!-- Desktop navigation -->
+<aside class="w-60 bg-slate-950 text-slate-300 flex-col flex-shrink-0 z-30 hidden md:flex border-r border-slate-800 h-screen sticky top-0">
+  <div class="h-16 px-4 border-b border-slate-800 flex items-center gap-3">
+    <div class="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-sm ring-1 ring-white/10" aria-hidden="true">
+      <svg viewBox="0 0 32 32" class="w-5 h-5 fill-none stroke-current" stroke-width="2.4" stroke-linecap="round"><path d="M8 8v8a8 8 0 0 0 16 0V8M8 12h16M12 8v5M20 8v5"/></svg>
+    </div>
+    <div class="min-w-0">
+      <h1 class="font-semibold text-sm text-white tracking-tight">Quản trị bếp</h1>
+      <p class="text-[10px] text-slate-500 truncate">Út Hân Cuốn · Kitchen Ops</p>
+    </div>
+  </div>
+
+  <nav class="flex-1 p-3 space-y-1 overflow-y-auto text-xs font-medium">
+    <button @click="currentTab = 'dashboard'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-left" :class="currentTab === 'dashboard' ? 'bg-primary text-white' : 'hover:bg-slate-900 text-slate-400 hover:text-white'">
+      <i class="fa-solid fa-chart-pie w-4 text-center"></i><span>Tổng quan</span>
+    </button>
+    <button @click="currentTab = 'orders'; clearNewOrdersBadge()" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition text-left" :class="currentTab === 'orders' ? 'bg-primary text-white' : 'hover:bg-slate-900 text-slate-400 hover:text-white'">
+      <span class="flex items-center gap-3"><i class="fa-solid fa-fire-burner w-4 text-center"></i><span>Đơn hàng & bếp</span></span>
+      <span v-if="newOrdersCount > 0" class="bg-white/15 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">+{{ newOrdersCount }}</span>
+    </button>
+    <button @click="currentTab = 'products'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-left" :class="currentTab === 'products' ? 'bg-primary text-white' : 'hover:bg-slate-900 text-slate-400 hover:text-white'">
+      <i class="fa-solid fa-utensils w-4 text-center"></i><span>Thực đơn & kho</span>
+    </button>
+    <button @click="currentTab = 'customers'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-left" :class="currentTab === 'customers' ? 'bg-primary text-white' : 'hover:bg-slate-900 text-slate-400 hover:text-white'">
+      <i class="fa-solid fa-motorcycle w-4 text-center"></i><span>Khách & shipper</span>
+    </button>
+    <button @click="currentTab = 'settings'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-left" :class="currentTab === 'settings' ? 'bg-primary text-white' : 'hover:bg-slate-900 text-slate-400 hover:text-white'">
+      <i class="fa-solid fa-sliders w-4 text-center"></i><span>Cài đặt</span>
+    </button>
+  </nav>
+
+  <div class="p-3 border-t border-slate-800 text-[10px] text-slate-500 flex items-center justify-between">
+    <span class="flex items-center gap-2"><span class="relative flex h-2 w-2"><span v-if="socketConnected" class="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-60"></span><span class="relative rounded-full h-2 w-2" :class="socketConnected ? 'bg-emerald-500' : 'bg-rose-500'"></span></span>{{ socketConnected ? 'Realtime sẵn sàng' : 'Mất kết nối' }}</span>
+    <a href="/" target="_blank" class="p-2 rounded-lg hover:bg-slate-900 hover:text-white transition" title="Xem menu"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+  </div>
+</aside>

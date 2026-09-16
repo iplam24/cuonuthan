@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Production Builds
+dist/
+*/dist/
+
+# Environment variables & secrets
+.env
+*.env
+*.env.*
+!*.env.example
+!*/*.env.example
+
+# Logs & Runtime
+*.log
+logs/
+backend/logs/
+
+# Uploads (preserve folder via .gitkeep)
+backend/uploads/*
+!backend/uploads/.gitkeep
+frontend/public/uploads/*
+!frontend/public/uploads/.gitkeep
+
+# System & Deployment metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.vercel
+.wrangler/
+.zcode/
+.gemini/
+

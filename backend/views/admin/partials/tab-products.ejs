@@ -1,0 +1,197 @@
+<!-- TAB 3: PRODUCTS & CATEGORIES (Menu with Main/Side Dish Badges & 1-Click Stock) -->
+<section v-if="currentTab === 'products'" class="space-y-5 fade-in duration-200">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+        <i class="fa-solid fa-utensils text-primary"></i>
+        <span>Quản Lý Thực Đơn & Kho Hàng</span>
+      </h1>
+      <p class="text-xs text-slate-500 mt-0.5 font-medium">Bật/tắt hết hàng 1-chạm, phân loại món chính - món phụ và cập nhật giá bán</p>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <button
+        @click="showCategoryModal = true"
+        class="px-4 py-2.5 bg-slate-100 hover:bg-amber-200 text-slate-900 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-2 border border-slate-200"
+      >
+        <i class="fa-solid fa-folder-tree text-amber-800"></i>
+        <span>Quản Lý Danh Mục</span>
+      </button>
+      <button
+        @click="openAddProductModal"
+        class="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 active:scale-95"
+      >
+        <i class="fa-solid fa-plus"></i>
+        <span>Thêm Món Mới</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter & Search bar -->
+  <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div class="flex flex-wrap items-center gap-3 flex-1 min-w-[260px]">
+      <div class="relative flex-1 min-w-[220px]">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input
+          v-model="productSearch"
+          type="text"
+          placeholder="Tìm theo tên món ăn..."
+          class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition bg-white"
+          @input="handleProductSearchDebounced"
+        />
+      </div>
+
+      <select
+        v-model="productFilterCategory"
+        @change="handleProductFilter"
+        class="px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold cursor-pointer bg-white outline-none text-slate-900"
+      >
+        <option value="">Tất cả danh mục</option>
+        <option v-for="c in categoriesList" :key="c.id" :value="c.id">{{ c.name }}</option>
+      </select>
+    </div>
+
+    <div class="text-xs text-gray-500 font-medium">
+      Tổng cộng: <strong class="text-primary font-bold">{{ productPagination.total }}</strong> món ăn trong menu
+    </div>
+  </div>
+
+  <!-- Products Table -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto always-scrollbar">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-slate-50 text-slate-900 font-bold border-b border-slate-200 uppercase tracking-wider">
+          <tr>
+            <th class="p-4">Ảnh</th>
+            <th class="p-4">Tên món ăn</th>
+            <th class="p-4">Phân loại</th>
+            <th class="p-4">Danh mục</th>
+            <th class="p-4">Giá bán</th>
+            <th class="p-4 text-center">Tình trạng kho (1-Chạm)</th>
+            <th class="p-4 text-right">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-amber-900/5">
+          <tr
+            v-for="p in productsList"
+            :key="p.id"
+            class="hover:bg-slate-50 transition group"
+            :class="{ 'opacity-60 bg-red-50/20': p.is_out_of_stock }"
+          >
+            <!-- Image -->
+            <td class="p-4">
+              <img
+                :src="p.primary_image || '/uploads/products/BoTuoiMoiNgay.jpg'"
+                class="admin-product-thumbnail w-13 h-13 rounded-xl object-cover border border-slate-300 shadow-xs group-hover:scale-105 transition-transform"
+                onerror="this.src='/uploads/products/BoTuoiMoiNgay.jpg'"
+              />
+            </td>
+
+            <!-- Product Name & Description -->
+            <td class="p-4 font-bold text-slate-900 max-w-xs">
+              <div class="text-sm font-bold flex items-center gap-1.5">
+                <span class="group-hover:text-primary transition">{{ p.name }}</span>
+                <span v-if="p.is_featured" class="text-amber-500 text-xs" title="Món bán chạy">
+                  <i class="fa-solid fa-star"></i>
+                </span>
+              </div>
+              <div class="text-[11px] text-gray-400 font-normal truncate mt-0.5">{{ p.short_description || 'Chưa có mô tả ngắn' }}</div>
+            </td>
+
+            <!-- Side Dish or Main Dish Badge -->
+            <td class="p-4">
+              <span
+                v-if="p.is_side_dish"
+                class="px-2.5 py-1 bg-slate-50 text-slate-700 border border-amber-300 font-bold rounded-xl text-[10px] inline-flex items-center gap-1.5 shadow-sm"
+                title="Khách chỉ được đặt món này khi đã chọn món chính"
+              >
+                <i class="fa-solid fa-bowl-rice text-amber-700"></i>
+                <span>Món Phụ / Kèm</span>
+              </span>
+              <span
+                v-else
+                class="px-2.5 py-1 bg-emerald-50 text-emerald-900 border border-emerald-300 font-bold rounded-xl text-[10px] inline-flex items-center gap-1.5 shadow-sm"
+              >
+                <i class="fa-solid fa-utensils text-emerald-700"></i>
+                <span>Món Chính</span>
+              </span>
+            </td>
+
+            <!-- Category -->
+            <td class="p-4">
+              <span class="px-2.5 py-1 bg-slate-50 text-slate-900 font-bold rounded-lg text-[11px] border border-amber-200/50">
+                {{ p.category_name || 'Khác' }}
+              </span>
+            </td>
+
+            <!-- Price -->
+            <td class="p-4 font-bold text-primary text-sm">{{ formatVND(p.price) }}</td>
+
+            <!-- 1-Click Stock Toggle -->
+            <td class="p-4 text-center">
+              <button
+                :disabled="isPending('product-stock-' + p.id)"
+                @click="toggleProductStock(p)"
+                class="px-3.5 py-1.5 rounded-full text-xs font-bold transition shadow-xs inline-flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                :class="p.is_out_of_stock ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300/40'"
+              >
+                <i :class="p.is_out_of_stock ? 'fa-solid fa-circle-xmark' : 'fa-solid fa-circle-check'"></i>
+                <span>{{ p.is_out_of_stock ? 'ĐANG HẾT HÀNG' : 'CÒN HÀNG' }}</span>
+              </button>
+            </td>
+
+            <!-- Actions -->
+            <td class="p-4 text-right">
+              <div class="flex items-center justify-end gap-1">
+                <button
+                  @click="openEditProductModal(p)"
+                  class="p-2 hover:bg-slate-100 text-gray-700 hover:text-primary rounded-xl transition"
+                  title="Chỉnh sửa thông tin món"
+                >
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button
+                  @click="deleteProduct(p)"
+                  class="p-2 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-xl transition"
+                  title="Xóa món ăn khỏi thực đơn"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr v-if="productsList.length === 0">
+            <td colspan="7" class="p-10 text-center text-gray-400 italic font-medium">
+              Không tìm thấy món ăn nào phù hợp
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- BACKEND PAGINATION FOR PRODUCTS -->
+    <div class="p-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+      <div class="text-gray-500 font-medium">
+        Trang <strong>{{ productPagination.page }}</strong> / <strong>{{ productPagination.totalPages }}</strong> (Tổng <strong>{{ productPagination.total }}</strong> món)
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button
+          @click="changeProductPage(productPagination.page - 1)"
+          :disabled="productPagination.page <= 1"
+          class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white disabled:opacity-40 font-bold hover:bg-slate-50 transition shadow-sm"
+        >
+          ‹ Trang trước
+        </button>
+        <span class="px-3.5 py-1.5 rounded-xl bg-primary text-white font-bold shadow-xs">{{ productPagination.page }}</span>
+        <button
+          @click="changeProductPage(productPagination.page + 1)"
+          :disabled="productPagination.page >= productPagination.totalPages"
+          class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white disabled:opacity-40 font-bold hover:bg-slate-50 transition shadow-sm"
+        >
+          Trang sau ›
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

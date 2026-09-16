@@ -1,0 +1,193 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .primary-action {
+    background: linear-gradient(135deg, #F43F5E 0%, #E11D48 60%, #BE123C 100%);
+    color: #FFFFFF;
+    box-shadow: 0 10px 25px -4px rgba(225, 29, 72, 0.38);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .primary-action:hover {
+    background: linear-gradient(135deg, #FB7185 0%, #F43F5E 60%, #E11D48 100%);
+    box-shadow: 0 14px 30px -4px rgba(225, 29, 72, 0.50);
+    transform: translateY(-1px);
+  }
+
+  .cart-count {
+    background-color: #E11D48;
+    color: #FFFFFF;
+  }
+}
+
+html {
+  overflow-y: scroll !important;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #F8FAFC;
+  color: #0F172A;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  text-wrap: balance;
+  letter-spacing: -0.025em;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+/* Modern Minimalist Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Modern Glass & Surface Cards */
+.glass-header {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.food-card-surface {
+  background: #FFFFFF;
+  border: 1px solid #F1F5F9;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.food-card-surface:hover {
+  border-color: #E2E8F0;
+  box-shadow: 0 16px 35px -6px rgba(15, 23, 42, 0.08);
+  transform: translateY(-3px);
+}
+
+.food-ticket {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 1.25rem;
+  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.food-ticket::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #E11D48 0%, #F59E0B 50%, #E11D48 100%);
+}
+
+.tactile-option {
+  position: relative;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 1rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.tactile-option:hover {
+  border-color: #CBD5E1;
+  background: #F8FAFC;
+  transform: translateY(-1px);
+}
+
+.tactile-option.selected {
+  border-color: #E11D48;
+  background: #FFF1F2;
+  box-shadow: 0 4px 15px -2px rgba(225, 29, 72, 0.12);
+}
+
+.btn-lacquer-cta {
+  background: linear-gradient(135deg, #F43F5E 0%, #E11D48 60%, #BE123C 100%);
+  color: #FFFFFF;
+  box-shadow: 0 10px 25px -4px rgba(225, 29, 72, 0.38);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-lacquer-cta:hover:not(:disabled) {
+  background: linear-gradient(135deg, #FB7185 0%, #F43F5E 60%, #E11D48 100%);
+  box-shadow: 0 14px 30px -4px rgba(225, 29, 72, 0.48);
+  transform: translateY(-1.5px);
+}
+
+.btn-lacquer-cta:active:not(:disabled) {
+  transform: translateY(0.5px) scale(0.99);
+  box-shadow: 0 4px 12px -2px rgba(225, 29, 72, 0.25);
+}
+
+.smooth-input {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  color: #0F172A;
+  transition: all 0.2s ease-in-out;
+}
+
+.smooth-input:hover {
+  border-color: #CBD5E1;
+  background: #FFFFFF;
+}
+
+.smooth-input:focus {
+  border-color: #E11D48;
+  outline: none;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10B981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulseGreen 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes pulseGreen {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}

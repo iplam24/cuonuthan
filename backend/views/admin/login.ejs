@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= pageTitle %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap" rel="stylesheet">
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Be Vietnam Pro"', 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              DEFAULT: '#b8261e',
+              dark: '#8f1a14',
+              light: '#d94138'
+            },
+            accent: {
+              DEFAULT: '#d97706',
+              dark: '#b45309',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Be Vietnam Pro', sans-serif; }
+    html { overflow-y: scroll !important; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex items-center justify-center p-4 selection:bg-primary/20 selection:text-primary">
+  <div class="max-w-md w-full bg-white rounded-xl p-8 shadow-card border border-slate-200 space-y-6">
+    <!-- Brand Logo -->
+    <div class="text-center space-y-2">
+      <div class="w-14 h-14 rounded-xl bg-primary text-white flex items-center justify-center mx-auto shadow-sm" aria-hidden="true">
+        <svg viewBox="0 0 32 32" class="w-7 h-7 fill-none stroke-current" stroke-width="2.4" stroke-linecap="round"><path d="M8 8v8a8 8 0 0 0 16 0V8M8 12h16M12 8v5M20 8v5"/></svg>
+      </div>
+      <h1 class="font-bold text-2xl text-slate-900 tracking-tight">Đăng nhập quản trị</h1>
+      <p class="text-xs text-slate-500">Hệ thống điều phối đơn hàng & quản lý bếp Út Hân Cuốn</p>
+    </div>
+
+    <!-- Alert Message -->
+    <div id="alertBox" role="status" aria-live="polite" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
+
+    <!-- Form -->
+    <form id="loginForm" class="space-y-4 text-xs" autocomplete="on">
+      <div>
+        <label for="username" class="block font-bold text-gray-700 uppercase tracking-wider mb-1">Tên đăng nhập hoặc SĐT</label>
+        <input
+          id="username"
+          name="identifier"
+          type="text"
+          placeholder="admin hoặc 0988888888"
+          autocomplete="username"
+          required
+          class="w-full px-4 py-3 rounded-xl border border-gray-300 text-xs font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+        />
+      </div>
+
+      <div>
+        <label for="password" class="block font-bold text-gray-700 uppercase tracking-wider mb-1">Mật khẩu</label>
+        <div class="relative">
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+            class="w-full px-4 py-3 pr-12 rounded-xl border border-gray-300 text-xs font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+          />
+          <button type="button" id="togglePassword" class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-primary" aria-label="Hiện mật khẩu">
+            <i class="fa-solid fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        id="submitBtn"
+        class="w-full py-3.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-extrabold tracking-wider uppercase shadow-lg hover:shadow-md transition active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <i class="fa-solid fa-right-to-bracket"></i>
+        <span>Đăng Nhập Vào Bếp</span>
+      </button>
+    </form>
+
+    <div class="pt-4 border-t border-gray-100 text-center space-y-2">
+      <a href="/" target="_blank" class="inline-flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-primary transition pt-1">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Xem trang đặt món khách hàng</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Axios CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const alertBox = document.getElementById('alertBox');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const togglePassword = document.getElementById('togglePassword');
+    togglePassword.addEventListener('click', () => {
+      const passwordInput = document.getElementById('password');
+      const isVisible = passwordInput.type === 'text';
+      passwordInput.type = isVisible ? 'password' : 'text';
+      togglePassword.setAttribute('aria-label', isVisible ? 'Hiện mật khẩu' : 'Ẩn mật khẩu');
+      togglePassword.innerHTML = `<i class="fa-solid ${isVisible ? 'fa-eye' : 'fa-eye-slash'}"></i>`;
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await doLogin();
+    });
+
+    async function doLogin() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Đang xác thực...';
+      alertBox.className = 'hidden';
+
+      try {
+        const res = await axios.post('/api/v1/auth/login', {
+          identifier: username,
+          password
+        });
+        const data = res.data;
+
+        if (data.success && data.data && data.data.token) {
+          localStorage.setItem('uthan_token', data.data.token);
+          localStorage.setItem('uthan_user', JSON.stringify(data.data.user));
+          alertBox.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 block';
+          alertBox.innerText = 'Đăng nhập thành công! Đang chuyển hướng vào cổng quản trị...';
+          setTimeout(() => {
+            window.location.href = '/admin';
+          }, 400);
+        } else {
+          throw new Error(data.message || 'Tài khoản hoặc mật khẩu không chính xác');
+        }
+      } catch (err) {
+        alertBox.className = 'p-3 rounded-xl text-xs font-semibold bg-red-50 text-red-800 border border-red-200 block';
+        alertBox.innerText = err.response?.data?.message || err.message || 'Đăng nhập thất bại';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Đăng Nhập Vào Bếp';
+      }
+    }
+  </script>
+</body>
+</html>

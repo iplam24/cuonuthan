@@ -1,0 +1,130 @@
+<!-- TAB 2: ORDERS (Kanban Drag & Drop & Table with Backend SQL Pagination) -->
+<section v-if="currentTab === 'orders'" class="space-y-5 fade-in duration-200">
+  <!-- Title & Controls Header -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2.5">
+        <i class="fa-solid fa-fire-burner text-primary"></i>
+        <span>Điều Phối Đơn Hàng & Bếp Nấu</span>
+      </h1>
+      <p class="text-xs text-gray-500 mt-0.5">Kéo thả để chuyển trạng thái đơn, gán tài xế & in phiếu bếp / hóa đơn nhiệt 80mm</p>
+    </div>
+
+    <!-- View Switcher & Actions -->
+    <div class="flex items-center gap-2.5">
+      <div class="bg-gray-200/80 p-1 rounded-xl flex text-xs font-bold shadow-inner">
+        <button
+          @click="setOrderViewMode('kanban')"
+          class="px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5"
+          :class="orderViewMode === 'kanban' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:text-gray-900'"
+        >
+          <i class="fa-solid fa-table-columns"></i>
+          <span>Bảng Kanban</span>
+        </button>
+        <button
+          @click="setOrderViewMode('table')"
+          class="px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5"
+          :class="orderViewMode === 'table' ? 'bg-white shadow text-primary' : 'text-gray-600 hover:text-gray-900'"
+        >
+          <i class="fa-solid fa-table-list"></i>
+          <span>Bảng Danh Sách</span>
+        </button>
+      </div>
+
+      <button
+        @click="loadOrders"
+        class="p-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-700 shadow-sm transition"
+        title="Làm mới danh sách đơn"
+      >
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters & Date Selector Bar -->
+  <div class="bg-white rounded-xl p-4 border border-gray-200/80 shadow-soft space-y-3">
+    <div class="flex flex-wrap items-center justify-between gap-3 text-xs">
+      <!-- Date Presets -->
+      <div class="flex flex-wrap items-center gap-1.5">
+        <span class="text-gray-500 font-bold mr-1 flex items-center gap-1">
+          <i class="fa-regular fa-calendar text-accent"></i>
+          <span>Ngày:</span>
+        </span>
+        <button
+          v-for="preset in [
+            { id: 'today', label: 'Hôm nay' },
+            { id: 'yesterday', label: 'Hôm qua' },
+            { id: '7days', label: '7 ngày qua' },
+            { id: 'all', label: 'Tất cả' }
+          ]"
+          :key="preset.id"
+          @click="setDatePreset(preset.id)"
+          class="px-3 py-1.5 rounded-xl font-bold transition text-xs"
+          :class="orderDatePreset === preset.id ? 'bg-primary text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+        >
+          {{ preset.label }}
+        </button>
+
+        <!-- Custom Date Input -->
+        <input
+          type="date"
+          v-model="orderCustomDate"
+          @change="onCustomDateChange"
+          class="px-2.5 py-1 rounded-xl border border-gray-300 font-semibold text-xs outline-none focus:border-primary ml-1"
+          title="Chọn ngày cụ thể"
+        />
+      </div>
+
+      <!-- Total Counter Badge -->
+      <div class="text-xs font-medium text-gray-600">
+        Hiển thị: <strong class="text-primary font-bold">{{ ordersList.length }}</strong> đơn
+        <span v-if="orderViewMode === 'table' && orderPagination.total > 0"> (Tổng: {{ orderPagination.total }})</span>
+      </div>
+    </div>
+
+    <!-- Search & Attribute Filters -->
+    <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-100 text-xs">
+      <div class="relative flex-1 min-w-[240px]">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input
+          v-model="orderSearch"
+          type="text"
+          placeholder="Tìm mã đơn, tên khách, số điện thoại..."
+          class="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"
+          @input="handleOrderSearchDebounced"
+        />
+      </div>
+
+      <select
+        v-if="orderViewMode === 'table'"
+        v-model="orderFilterStatus"
+        @change="handleOrderFilter"
+        class="px-3.5 py-2 rounded-xl border border-gray-300 font-semibold cursor-pointer bg-white outline-none"
+      >
+        <option value="">Tất cả trạng thái</option>
+        <option value="pending">Chờ duyệt</option>
+        <option value="confirmed">Đã duyệt</option>
+        <option value="preparing">Bếp nấu</option>
+        <option value="delivering">Đang giao</option>
+        <option value="completed">Hoàn tất</option>
+        <option value="cancelled">Đã hủy</option>
+      </select>
+
+      <select
+        v-model="orderFilterPayment"
+        @change="handleOrderFilter"
+        class="px-3.5 py-2 rounded-xl border border-gray-300 font-semibold cursor-pointer bg-white outline-none"
+      >
+        <option value="">Tất cả thanh toán</option>
+        <option value="unpaid">Chưa thanh toán</option>
+        <option value="paid">Đã thanh toán</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KANBAN VIEW WITH HTML5 DRAG & DROP -->
+  <%- include('orders-kanban') %>
+
+  <!-- TABLE VIEW (With Backend SQL Pagination) -->
+  <%- include('orders-table') %>
+</section>

@@ -1,0 +1,34 @@
+<!-- 6. HIDDEN THERMAL POS 80MM RECEIPT & KITCHEN PRINT TEMPLATE -->
+<div id="pos-print-area" v-if="printData" class="hidden">
+  <div style="font-family: monospace; font-size: 11px; width: 80mm; padding: 4px; line-height: 1.3;">
+    <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px;">
+      <h2 style="margin: 0; font-size: 15px; font-weight: bold;">ÚT HÂN CUỐN</h2>
+      <div>Hotline: 0988.888.888</div>
+      <div style="font-weight: bold; margin-top: 4px;">
+        {{ printMode === 'receipt' ? 'HÓA ĐƠN BÁN HÀNG' : 'PHIẾU BẾP - XUẤT MÓN' }}
+      </div>
+      <div>Mã: {{ printData.order_code }}</div>
+    </div>
+
+    <div style="padding: 6px 0; border-bottom: 1px dashed #000;">
+      <div>Khách: {{ printData.customer_name }} - {{ printData.customer_phone }}</div>
+      <div>Đ/C: {{ printData.delivery_address }}</div>
+      <div v-if="printData.delivery_note">Ghi chú: {{ printData.delivery_note }}</div>
+    </div>
+
+    <div style="padding: 6px 0; border-bottom: 1px dashed #000;">
+      <div v-for="item in printData.items || []" :key="item.id" style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+        <span>{{ item.quantity }}x {{ item.product_name }}</span>
+        <span style="font-weight: bold;">{{ formatVND(item.total_price) }}</span>
+      </div>
+    </div>
+
+    <div style="padding: 6px 0; text-align: right; font-weight: bold;">
+      <div>TỔNG TIỀN: {{ formatVND(printData.total_amount) }}</div>
+    </div>
+
+    <div style="text-align: center; margin-top: 8px; font-size: 10px;">
+      Cảm ơn quý khách đã ủng hộ Út Hân Cuốn!
+    </div>
+  </div>
+</div>

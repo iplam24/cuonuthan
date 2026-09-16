@@ -1,0 +1,352 @@
+<script>
+  const { createApp, ref, reactive, onMounted } = Vue;
+
+  createApp({
+    setup() {
+      // Navigation & Layout states
+      const currentTab = ref('dashboard');
+      const orderViewMode = ref('kanban');
+      const customerSubTab = ref('customers');
+      const userName = ref('Quản Lý Bếp');
+      const socketConnected = ref(false);
+      const soundEnabled = ref(true);
+      const newOrdersCount = ref(0);
+      const liveClock = ref('');
+      const toasts = ref([]);
+      const pending = reactive({});
+      const confirmDialog = ref({ open: false, title: '', message: '', confirmText: 'Xác nhận', danger: false, resolve: null });
+      const loading = reactive({ dashboard: false, orders: false, products: false, customers: false, shippers: false, coupons: false, settings: false });
+      const errors = reactive({ dashboard: '', orders: '', products: '', customers: '', shippers: '', coupons: '', settings: '' });
+      const lastUpdated = ref(null);
+
+      // Data states
+      const stats = ref(null);
+      const ordersList = ref([]);
+      const productsList = ref([]);
+      const customersList = ref([]);
+      const shippersList = ref([]);
+      const couponsList = ref([]);
+      const categoriesList = ref([]);
+
+      // Pagination
+      const orderPagination = reactive({ page: 1, limit: 15, totalPages: 1, total: 0 });
+      const productPagination = reactive({ page: 1, limit: 15, totalPages: 1, total: 0 });
+      const customerPagination = reactive({ page: 1, limit: 15, totalPages: 1, total: 0 });
+
+      // Filters
+      const orderSearch = ref('');
+      const orderFilterStatus = ref('');
+      const orderFilterPayment = ref('');
+      const orderDatePreset = ref('today');
+      const orderCustomDate = ref('');
+      const productSearch = ref('');
+      const productFilterCategory = ref('');
+
+      // Drag & Drop Kanban & Scale Limiter
+      const draggingOrderId = ref(null);
+      const draggedOrder = ref(null);
+      const showAllCompleted = ref(false);
+
+      const kanbanColumns = [
+        { status: 'pending', title: 'Chờ Duyệt', icon: 'fa-solid fa-bell text-amber-500', badgeClass: 'bg-amber-50 text-slate-700 border border-amber-300', btnText: 'Duyệt đơn', btnClass: 'bg-primary hover:bg-primary-dark', nextIcon: 'fa-solid fa-check', nextStatus: 'confirmed' },
+        { status: 'confirmed', title: 'Đã Nhận', icon: 'fa-solid fa-circle-check text-blue-500', badgeClass: 'bg-blue-100 text-blue-900 border border-blue-300', btnText: 'Bếp nấu', btnClass: 'bg-purple-600 hover:bg-purple-700', nextIcon: 'fa-solid fa-fire-burner', nextStatus: 'preparing' },
+        { status: 'preparing', title: 'Bếp Nấu', icon: 'fa-solid fa-kitchen-set text-purple-500', badgeClass: 'bg-purple-100 text-purple-900 border border-purple-300', btnText: 'Sẵn sàng giao', btnClass: 'bg-indigo-600 hover:bg-indigo-700', nextIcon: 'fa-solid fa-box', nextStatus: 'ready_for_pickup' },
+        { status: 'ready_for_pickup', title: 'Sẵn Sàng Giao', icon: 'fa-solid fa-box text-indigo-500', badgeClass: 'bg-indigo-100 text-indigo-900 border border-indigo-300', btnText: 'Bắt đầu giao', btnClass: 'bg-orange-600 hover:bg-orange-700', nextIcon: 'fa-solid fa-motorcycle', nextStatus: 'delivering' },
+        { status: 'delivering', title: 'Đang Giao', icon: 'fa-solid fa-truck-fast text-orange-500', badgeClass: 'bg-orange-100 text-orange-900 border border-orange-300', btnText: 'Hoàn tất', btnClass: 'bg-emerald-600 hover:bg-emerald-700', nextIcon: 'fa-solid fa-check-double', nextStatus: 'completed' },
+        { status: 'completed', title: 'Hoàn Thành', icon: 'fa-solid fa-flag-checkered text-emerald-500', badgeClass: 'bg-emerald-100 text-emerald-900 border border-emerald-300', btnText: null, btnClass: '', nextIcon: '', nextStatus: null },
+      ];
+
+      // Modals
+      const activeOrder = ref(null);
+      const printData = ref(null);
+      const printMode = ref('receipt');
+      const showCategoryModal = ref(false);
+      const newCategoryName = ref('');
+
+      const showProductModal = ref(false);
+      const productEditingId = ref(null);
+      const productForm = reactive({
+        name: '',
+        category_id: '',
+        price: 50000,
+        original_price: null,
+        unit: 'phần',
+        short_description: '',
+        image_url: '',
+        is_featured: 0,
+        is_out_of_stock: 0,
+        is_side_dish: 0
+      });
+
+      const showShipperModal = ref(false);
+      const shipperEditingId = ref(null);
+      const shipperForm = reactive({
+        full_name: '',
+        phone: '',
+        vehicle_plate: ''
+      });
+
+      const showCouponModal = ref(false);
+      const couponForm = reactive({
+        code: '',
+        description: '',
+        discount_type: 'fixed_amount',
+        discount_value: 20000,
+        min_order_value: 100000,
+        end_date: '',
+        usage_limit: 100
+      });
+
+      const settingsSubTab = ref('brand');
+      const customerSearch = ref('');
+      const shipperFilter = ref('all');
+      const orderDetailLoading = ref(false);
+      const editingCategoryId = ref(null);
+      const categoryEditingName = ref('');
+      const productImagePreview = ref('');
+      const customerDetailId = ref(null);
+      const customerOrders = ref([]);
+      const customerOrdersLoading = ref(false);
+      const activeOrderHistory = ref([]);
+      const activeOrderNotes = ref([]);
+      const adminNoteInput = ref('');
+      const adminNoteSubmitting = ref(false);
+      const cancelReasonInput = ref('');
+      const cancelSubmitting = ref(false);
+
+      const settingsForm = reactive({
+        brand_name: 'Út Hân Cuốn',
+        hotline: '0988.888.888',
+        address: '',
+        email: '',
+        business_hours: '',
+        store_status: 'Bếp Út Hân đang mở cửa',
+        delivery_time: '25–35 phút',
+        facebook_url: '',
+        zalo_url: '',
+        bank_id: 'MB',
+        bank_account_no: '0988888888',
+        bank_account_name: 'NGUYEN THI HAN'
+      });
+
+      // Include Sub-scripts
+      <%- include('scripts-utils') %>
+      <%- include('scripts-orders') %>
+      <%- include('scripts-products') %>
+      <%- include('scripts-shippers-settings') %>
+
+      // Lifecycle hook
+      onMounted(() => {
+        const token = localStorage.getItem('uthan_token');
+        if (!token) {
+          window.location.href = '/admin/login';
+          return;
+        }
+
+        // Live Clock
+        const updateClock = () => {
+          liveClock.value = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        };
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Load initial data
+        loadDashboard();
+        loadOrders();
+        loadProducts();
+        loadCustomers();
+        loadShippers();
+        loadCoupons();
+        loadCategories();
+        loadSettings();
+
+        // Socket.IO realtime
+        try {
+          const socket = io();
+          socket.emit('join:admin');
+          socketConnected.value = true;
+
+          socket.on('order:created', () => {
+            newOrdersCount.value++;
+            if (soundEnabled.value) playOrderBell();
+            loadOrders({ silent: true });
+            loadDashboard(true);
+            notify('Có đơn hàng mới. Danh sách đã được đồng bộ.', 'info');
+          });
+
+          socket.on('order:status_updated', () => {
+            loadOrders({ silent: true });
+            loadDashboard(true);
+            if (activeOrder.value) openOrderModal(activeOrder.value, true);
+          });
+
+          socket.on('connect', () => {
+            socketConnected.value = true;
+            socket.emit('join:admin');
+          });
+
+          socket.on('disconnect', () => {
+            socketConnected.value = false;
+          });
+        } catch (e) {
+          socketConnected.value = false;
+          notify('Không thể kết nối cập nhật thời gian thực. Bạn vẫn có thể tải lại thủ công.', 'warning');
+          console.error('Socket initialization failed:', e);
+        }
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key !== 'Escape') return;
+          if (confirmDialog.value.open) resolveConfirm(false);
+          else if (activeOrder.value) activeOrder.value = null;
+          else if (showProductModal.value) showProductModal.value = false;
+          else if (showCategoryModal.value) showCategoryModal.value = false;
+          else if (showShipperModal.value) showShipperModal.value = false;
+          else if (showCouponModal.value) showCouponModal.value = false;
+        });
+      });
+
+      return {
+        currentTab,
+        orderViewMode,
+        customerSubTab,
+        userName,
+        socketConnected,
+        soundEnabled,
+        newOrdersCount,
+        liveClock,
+        stats,
+        ordersList,
+        productsList,
+        customersList,
+        shippersList,
+        couponsList,
+        categoriesList,
+        orderPagination,
+        productPagination,
+        customerPagination,
+        orderSearch,
+        orderFilterStatus,
+        orderFilterPayment,
+        orderDatePreset,
+        orderCustomDate,
+        productSearch,
+        productFilterCategory,
+        draggingOrderId,
+        showAllCompleted,
+        kanbanColumns,
+        activeOrder,
+        printData,
+        printMode,
+        showCategoryModal,
+        newCategoryName,
+        showProductModal,
+        productEditingId,
+        productForm,
+        showShipperModal,
+        shipperEditingId,
+        shipperForm,
+        showCouponModal,
+        couponForm,
+        settingsForm,
+        playOrderBell,
+        toggleSound,
+        clearNewOrdersBadge,
+        setDatePreset,
+        onCustomDateChange,
+        setOrderViewMode,
+        loadDashboard,
+        loadOrders,
+        changeOrderPage,
+        handleOrderSearch,
+        handleOrderFilter,
+        getOrdersByStatus,
+        getVisibleOrdersByStatus,
+        viewCompletedInTable,
+        advanceStatus,
+        onDragStart,
+        onDragEnd,
+        onDragOver,
+        onDragLeave,
+        onDrop,
+        loadProducts,
+        changeProductPage,
+        handleProductSearch,
+        handleProductFilter,
+        toggleProductStock,
+        openAddProductModal,
+        openEditProductModal,
+        saveProductForm,
+        deleteProduct,
+        loadCustomers,
+        changeCustomerPage,
+        loadShippers,
+        openAddShipperModal,
+        openEditShipperModal,
+        saveShipperForm,
+        deleteShipper,
+        toggleShipperActive,
+        loadCategories,
+        createCategorySubmit,
+        deleteCategory,
+        loadCoupons,
+        openAddCouponModal,
+        saveCouponForm,
+        toggleCouponActive,
+        loadSettings,
+        saveSettingsForm,
+        openOrderModal,
+        triggerPosPrint,
+        assignShipperOrder,
+        formatVND,
+        formatVNDShort,
+        formatTime,
+        formatDateTime,
+        formatDate,
+        getStatusText,
+        getStatusBadge,
+        getChartHeight,
+        logout,
+        toasts,
+        notify,
+        dismissToast,
+        confirmDialog,
+        resolveConfirm,
+        askConfirm,
+        setPending,
+        isPending,
+        loading,
+        errors,
+        lastUpdated,
+        allowedOrderStatuses,
+        canMoveOrder,
+        handleOrderSearchDebounced: debounce(handleOrderSearch, 350),
+        handleProductSearchDebounced: debounce(handleProductSearch, 350),
+        settingsSubTab,
+        customerSearch,
+        shipperFilter,
+        orderDetailLoading,
+        editingCategoryId,
+        categoryEditingName,
+        productImagePreview,
+        customerDetailId,
+        customerOrders,
+        customerOrdersLoading,
+        activeOrderHistory,
+        activeOrderNotes,
+        adminNoteInput,
+        adminNoteSubmitting,
+        cancelReasonInput,
+        cancelSubmitting,
+        openCustomerDetail,
+        closeCustomerDetail,
+        submitAdminNote,
+        cancelActiveOrder,
+        startEditCategory,
+        saveCategoryEdit,
+        cancelCategoryEdit,
+        onProductImageChange,
+        refreshDashboard
+      };
+    }
+  }).mount('#admin-app');
+</script>

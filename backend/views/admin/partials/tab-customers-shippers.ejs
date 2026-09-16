@@ -1,0 +1,235 @@
+<!-- TAB 4: CUSTOMERS & SHIPPERS (With Full Shipper CRUD: Add, Edit, Delete, Toggle) -->
+<section v-if="currentTab === 'customers'" class="space-y-5 fade-in duration-200">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+        <i class="fa-solid fa-users text-primary"></i>
+        <span>Khách Hàng & Đội Ngũ Shipper</span>
+      </h1>
+      <p class="text-xs text-slate-500 mt-0.5 font-medium">Theo dõi lịch sử mua hàng thân thiết và quản trị tài xế giao hàng (Thêm / Sửa / Xóa)</p>
+    </div>
+
+    <!-- Dual Tab Switcher -->
+    <div class="flex bg-slate-100 p-1.5 rounded-xl text-xs font-bold border border-slate-200 shadow-inner">
+      <button
+        @click="customerSubTab = 'customers'"
+        class="px-4 py-2 rounded-xl transition flex items-center gap-2"
+        :class="customerSubTab === 'customers' ? 'bg-white shadow-md text-primary font-bold' : 'text-gray-600 hover:text-gray-900'"
+      >
+        <i class="fa-solid fa-user-group"></i>
+        <span>Khách Hàng ({{ customerPagination.total }})</span>
+      </button>
+      <button
+        @click="customerSubTab = 'shippers'"
+        class="px-4 py-2 rounded-xl transition flex items-center gap-2"
+        :class="customerSubTab === 'shippers' ? 'bg-white shadow-md text-primary font-bold' : 'text-gray-600 hover:text-gray-900'"
+      >
+        <i class="fa-solid fa-motorcycle"></i>
+        <span>Đội Ngũ Shipper ({{ shippersList.length }})</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- SubTab 1: Customers Table -->
+  <div v-if="customerSubTab === 'customers'" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <div class="relative w-full sm:max-w-md">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input v-model="customerSearch" @input="debounce ? null : null" @keyup.enter="customerPagination.page = 1; loadCustomers()" type="search" placeholder="Tìm tên, số điện thoại, email..." class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:border-primary" />
+      </div>
+      <button @click="customerPagination.page = 1; loadCustomers()" class="px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold">Tìm khách hàng</button>
+    </div>
+    <div class="overflow-x-auto always-scrollbar">
+      <table class="w-full text-left text-xs">
+        <thead class="bg-slate-50 text-slate-900 font-bold border-b border-slate-200 uppercase tracking-wider">
+          <tr>
+            <th class="p-4">Khách hàng</th>
+            <th class="p-4">Số điện thoại</th>
+            <th class="p-4">Email</th>
+            <th class="p-4 text-center">Số đơn đã đặt</th>
+            <th class="p-4 text-right">Tổng chi tiêu</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-amber-900/5">
+          <tr v-for="c in customersList" :key="c.id" class="hover:bg-slate-50 transition">
+            <td class="p-4 font-bold text-slate-900 flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs shadow-xs border border-slate-200">
+                {{ (c.name || c.full_name || 'K').charAt(0).toUpperCase() }}
+              </span>
+              <div class="flex flex-col">
+                <span class="text-sm font-bold">{{ c.name || c.full_name }}</span>
+                <button @click.stop="openCustomerDetail(c)" class="text-[10px] text-primary hover:underline mt-0.5 self-start">Xem lịch sử đơn</button>
+              </div>
+            </td>
+            <td class="p-4 text-gray-700 font-mono font-bold">{{ c.phone }}</td>
+            <td class="p-4 text-gray-500 font-medium">{{ c.email || '—' }}</td>
+            <td class="p-4 text-center font-bold text-primary">{{ c.total_orders || 0 }} đơn</td>
+            <td class="p-4 text-right font-bold text-primary text-sm">{{ formatVND(c.total_spent) }}</td>
+          </tr>
+
+          <tr v-if="customersList.length === 0">
+            <td colspan="5" class="p-10 text-center text-gray-400 italic font-medium">
+              Chưa có khách hàng nào trong hệ thống
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Backend Pagination for Customers -->
+    <div class="p-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+      <div class="text-gray-500 font-medium">
+        Trang <strong>{{ customerPagination.page }}</strong> / <strong>{{ customerPagination.totalPages }}</strong> (Tổng <strong>{{ customerPagination.total }}</strong> khách)
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button
+          @click="changeCustomerPage(customerPagination.page - 1)"
+          :disabled="customerPagination.page <= 1"
+          class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white disabled:opacity-40 font-bold hover:bg-slate-50 transition shadow-sm"
+        >
+          ‹ Trước
+        </button>
+        <span class="px-3.5 py-1.5 rounded-xl bg-primary text-white font-bold shadow-xs">{{ customerPagination.page }}</span>
+        <button
+          @click="changeCustomerPage(customerPagination.page + 1)"
+          :disabled="customerPagination.page >= customerPagination.totalPages"
+          class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white disabled:opacity-40 font-bold hover:bg-slate-50 transition shadow-sm"
+        >
+          Sau ›
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SubTab 2: Shippers Management with Full CRUD (Add, Edit, Delete, Toggle) -->
+  <div v-else class="space-y-4">
+    <div class="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div class="flex items-center gap-3 text-xs">
+        <span class="text-gray-600 font-medium">Lọc tài xế:</span>
+        <select v-model="shipperFilter" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white font-bold outline-none text-xs">
+          <option value="all">Tất cả ({{ shippersList.length }})</option>
+          <option value="active">Đang hoạt động ({{ shippersList.filter(s => s.is_active).length }})</option>
+          <option value="inactive">Tạm dừng ({{ shippersList.filter(s => !s.is_active).length }})</option>
+          <option value="busy">Đang giao đơn ({{ shippersList.filter(s => Number(s.active_deliveries || 0) > 0).length }})</option>
+        </select>
+      </div>
+      <button
+        @click="openAddShipperModal"
+        class="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 active:scale-95"
+      >
+        <i class="fa-solid fa-user-plus"></i>
+        <span>Thêm Tài Xế Mới</span>
+      </button>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto always-scrollbar">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 text-slate-900 font-bold border-b border-slate-200 uppercase tracking-wider">
+            <tr>
+              <th class="p-4">Tài xế</th>
+              <th class="p-4">Số điện thoại</th>
+              <th class="p-4">Biển số xe máy</th>
+              <th class="p-4 text-center">Đang giao</th>
+              <th class="p-4 text-center">Trạng thái</th>
+              <th class="p-4 text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-amber-900/5">
+            <tr v-for="s in shippersList.filter(item => shipperFilter === 'all' || (shipperFilter === 'active' && item.is_active) || (shipperFilter === 'inactive' && !item.is_active) || (shipperFilter === 'busy' && Number(item.active_deliveries || 0) > 0))" :key="s.id" class="hover:bg-slate-50 transition" :class="{ 'opacity-60 bg-gray-50/40': !s.is_active }">
+              <td class="p-4 font-bold text-slate-900 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-slate-800 text-white flex items-center justify-center font-bold shadow-xs">
+                  <i class="fa-solid fa-motorcycle text-sm"></i>
+                </div>
+                <div>
+                  <div class="font-bold text-sm">{{ s.full_name || s.name }}</div>
+                  <div class="text-[10px] text-gray-400 font-mono">Mã: #{{ s.id }}</div>
+                </div>
+              </td>
+
+              <td class="p-4 text-gray-700 font-mono font-bold">{{ s.phone }}</td>
+
+              <td class="p-4 font-mono font-bold">
+                <span v-if="s.vehicle_plate" class="px-2.5 py-1 bg-slate-50 text-slate-700 rounded-xl border border-slate-200 font-semibold shadow-sm">
+                  {{ s.vehicle_plate }}
+                </span>
+                <span v-else class="text-gray-400 italic">Chưa đăng ký</span>
+              </td>
+
+              <td class="p-4 text-center">
+                <span
+                  class="px-2.5 py-1 rounded-full text-[11px] font-bold"
+                  :class="s.active_deliveries > 0 ? 'bg-amber-50 text-slate-700 border border-amber-300' : 'bg-gray-100 text-gray-500'"
+                >
+                  {{ s.active_deliveries || 0 }} đơn
+                </span>
+              </td>
+
+              <td class="p-4 text-center">
+                <button
+                  @click="toggleShipperActive(s)"
+                  :disabled="isPending('shipper-toggle-' + s.id)"
+                  class="px-3.5 py-1.5 rounded-full text-[11px] font-bold transition inline-flex items-center gap-1.5 shadow-sm active:scale-95"
+                  :class="s.is_active ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300/60' : 'bg-red-100 text-red-800 hover:bg-red-200 border border-red-300/60'"
+                >
+                  <i :class="s.is_active ? 'fa-solid fa-circle-check text-emerald-600' : 'fa-solid fa-circle-pause text-red-600'"></i>
+                  <span>{{ s.is_active ? 'Đang hoạt động' : 'Tạm dừng' }}</span>
+                </button>
+              </td>
+
+              <!-- Shipper Edit and Delete Actions -->
+              <td class="p-4 text-right">
+                <div class="flex items-center justify-end gap-1.5">
+                  <button
+                    @click="openEditShipperModal(s)"
+                    class="p-2 hover:bg-slate-100 text-gray-700 hover:text-primary rounded-xl transition"
+                    title="Chỉnh sửa thông tin tài xế"
+                  >
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+                  <button
+                    @click="deleteShipper(s)"
+                    class="p-2 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-xl transition"
+                    title="Xóa tài xế khỏi hệ thống"
+                  >
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr v-if="shippersList.length === 0">
+              <td colspan="6" class="p-10 text-center text-gray-400 italic font-medium">
+                Chưa có nhân viên giao hàng nào. Bấm nút "Thêm Tài Xế Mới" để tạo.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Detail Modal -->
+  <div v-if="customerDetailId" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="closeCustomerDetail">
+    <section role="dialog" aria-modal="true" class="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 text-xs shadow-lg max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-sm uppercase tracking-wider">Lịch sử đơn hàng khách</h3>
+        <button @click="closeCustomerDetail" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div v-if="customerOrdersLoading" class="py-8 text-center text-gray-500">Đang tải...</div>
+      <div v-else-if="customerOrders.length === 0" class="py-8 text-center text-gray-400 italic">Chưa có đơn hàng nào</div>
+      <div v-else class="space-y-2">
+        <div v-for="o in customerOrders" :key="o.id" class="p-3 rounded-xl border border-gray-100 hover:border-primary/40 transition flex justify-between items-center">
+          <div>
+            <div class="font-mono font-bold text-primary">{{ o.order_code }}</div>
+            <div class="text-[10px] text-gray-500">{{ formatDateTime(o.created_at) }} • {{ getStatusText(o.status) }}</div>
+          </div>
+          <div class="text-right">
+            <div class="font-bold text-gray-900">{{ formatVND(o.total_amount) }}</div>
+            <div class="text-[10px] text-gray-400">{{ (o.items || []).length }} món</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
