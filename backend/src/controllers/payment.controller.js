@@ -23,12 +23,16 @@ export const getVietQrForOrder = async (req, res, next) => {
 
     // Fetch bank settings
     const [settings] = await db.query(
-      `SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('bank_name', 'bank_account_number', 'bank_account_holder')`
+      `SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('bank_name', 'bank_account_number', 'bank_account_holder', 'bank_id', 'bank_account_no', 'bank_account_name')`
     );
     const config = settings.reduce((acc, row) => {
       acc[row.setting_key] = row.setting_value;
       return acc;
     }, {});
+
+    const resolvedBankId = config.bank_id || config.bank_name || 'MB';
+    const resolvedAccountNo = config.bank_account_no || config.bank_account_number || '0988888888';
+    const resolvedAccountName = config.bank_account_name || config.bank_account_holder || 'NGUYEN THI HAN';
 
     // Determine amount to pay: if deposit required and not deposited yet, suggest deposit_amount; or total_amount
     let amountToPay = order.total_amount;
@@ -40,9 +44,9 @@ export const getVietQrForOrder = async (req, res, next) => {
     }
 
     const qrUrl = generateVietQrUrl({
-      bankId: 'MB',
-      accountNo: config.bank_account_number || '0988888888',
-      accountName: config.bank_account_holder || 'NGUYEN THI HAN',
+      bankId: resolvedBankId,
+      accountNo: resolvedAccountNo,
+      accountName: resolvedAccountName,
       amount: amountToPay,
       description: `UH ${order.order_code}`,
     });
@@ -55,9 +59,9 @@ export const getVietQrForOrder = async (req, res, next) => {
       amount_to_pay: amountToPay,
       payment_type: paymentType,
       payment_status: order.payment_status,
-      bank_id: config.bank_id || 'MB',
-      bank_account_no: config.bank_account_no || '0988888888',
-      bank_account_name: config.bank_account_name || 'NGUYEN THI HAN',
+      bank_id: resolvedBankId,
+      bank_account_no: resolvedAccountNo,
+      bank_account_name: resolvedAccountName,
       qr_url: qrUrl,
       transfer_syntax: `UH ${order.order_code}`,
     });

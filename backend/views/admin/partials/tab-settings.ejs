@@ -153,25 +153,276 @@
       </div>
     </div>
 
-    <!-- VietQR Account -->
-    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-      <div class="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-        <i class="fa-solid fa-qrcode text-accent"></i>
-        <span>Tài Khoản Nhận Chuyển Khoản Tự Động (VietQR)</span>
+    <!-- VietQR Account & Smart Bank Selector -->
+    <div class="p-5 bg-gradient-to-br from-slate-50 to-slate-100/70 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200/80 pb-3">
+        <div class="flex items-center gap-2 text-xs font-extrabold text-slate-900">
+          <div class="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 text-primary flex items-center justify-center">
+            <i class="fa-solid fa-building-columns"></i>
+          </div>
+          <div>
+            <div class="uppercase tracking-wider">Tài Khoản Ngân Hàng VietQR (NAPAS 24/7)</div>
+            <div class="text-[11px] text-slate-500 font-normal">Tự động sinh mã QR có sẵn số tiền & nội dung đơn cho khách chuyển khoản</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            @click="printQrStandee"
+            class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 shadow-xs flex items-center gap-1.5 transition text-[11px] active:scale-95"
+            title="In Standee đặt bàn để khách quét chuyển khoản"
+          >
+            <i class="fa-solid fa-print text-rose-500"></i>
+            <span>In Standee Đặt Quầy</span>
+          </button>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div>
-          <label class="block font-bold text-gray-700 mb-1">Mã ngân hàng (Bin/ID)</label>
-          <input v-model="settingsForm.bank_id" type="text" placeholder="MB" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-bold uppercase focus:border-primary outline-none bg-white" />
+      <!-- Main Config Grid: Left Bank Form / Right Live QR Preview -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <!-- Left 7 Cols: Bank Inputs & Selector Dropdown -->
+        <div class="lg:col-span-7 space-y-4">
+          <!-- 1. BANK SELECTION TRIGGER & DROPDOWN -->
+          <div class="relative">
+            <label class="block font-bold text-slate-800 text-xs mb-1.5 flex items-center justify-between">
+              <span>Ngân hàng thụ hưởng</span>
+              <button
+                type="button"
+                @click="customBankInputMode = !customBankInputMode"
+                class="text-[11px] text-primary hover:underline font-semibold"
+              >
+                {{ customBankInputMode ? '← Chọn từ danh sách ngân hàng' : 'Nhập mã tùy chỉnh khác' }}
+              </button>
+            </label>
+
+            <!-- Mode A: Rich Bank Dropdown Button -->
+            <div v-if="!customBankInputMode" class="relative">
+              <button
+                type="button"
+                @click="bankDropdownOpen = !bankDropdownOpen"
+                class="w-full p-3 bg-white rounded-xl border border-slate-300 hover:border-primary focus:border-primary transition flex items-center justify-between shadow-xs group text-left"
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-tr text-white flex items-center justify-center font-extrabold text-xs shadow-xs shrink-0"
+                    :class="selectedBankObj.color || 'from-slate-700 to-slate-900'"
+                  >
+                    {{ selectedBankObj.id }}
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-bold text-slate-900 text-xs flex items-center gap-1.5 truncate">
+                      <span>{{ selectedBankObj.shortName }}</span>
+                      <span class="text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded font-mono font-bold border border-slate-200">
+                        BIN: {{ selectedBankObj.bin }}
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-slate-500 truncate mt-0.5">
+                      {{ selectedBankObj.name }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 pl-2 shrink-0">
+                  <span class="text-[11px] font-bold text-primary hidden sm:inline group-hover:underline">Đổi ngân hàng</span>
+                  <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-primary group-hover:text-white transition">
+                    <i class="fa-solid fa-chevron-down text-[10px]" :class="{ 'rotate-180': bankDropdownOpen }"></i>
+                  </div>
+                </div>
+              </button>
+
+              <!-- DROPDOWN FLYOUT MENU -->
+              <div
+                v-if="bankDropdownOpen"
+                class="absolute left-0 top-full mt-2 w-full bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 p-3 space-y-2.5 animate-in fade-in zoom-in-95 duration-150"
+              >
+                <!-- Search & Filters -->
+                <div class="space-y-2">
+                  <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input
+                      v-model="bankSearchQuery"
+                      type="text"
+                      placeholder="Tìm theo tên (MB, Vietcombank...), mã ngắn, số BIN..."
+                      class="w-full pl-8 pr-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-xs font-medium focus:bg-white focus:border-primary outline-none transition"
+                      autofocus
+                    />
+                  </div>
+
+                  <div class="flex items-center gap-1.5 text-[11px] font-bold overflow-x-auto pb-1">
+                    <button
+                      type="button"
+                      @click="bankFilterType = 'all'"
+                      class="px-2.5 py-1 rounded-lg transition shrink-0"
+                      :class="bankFilterType === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    >
+                      Tất cả ({{ VIETNAMESE_BANKS.length }})
+                    </button>
+                    <button
+                      type="button"
+                      @click="bankFilterType = 'popular'"
+                      class="px-2.5 py-1 rounded-lg transition shrink-0 flex items-center gap-1"
+                      :class="bankFilterType === 'popular' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    >
+                      <span>🔥 Phổ biến (Top 10)</span>
+                    </button>
+                    <button
+                      type="button"
+                      @click="bankFilterType = 'digital'"
+                      class="px-2.5 py-1 rounded-lg transition shrink-0 flex items-center gap-1"
+                      :class="bankFilterType === 'digital' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    >
+                      <span>⚡ Ngân hàng số</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Scrollable Bank Items List -->
+                <div class="max-h-60 overflow-y-auto space-y-1 pr-1 always-scrollbar">
+                  <button
+                    v-for="b in filteredBanks"
+                    :key="b.id"
+                    type="button"
+                    @click="selectBank(b)"
+                    class="w-full p-2 rounded-xl flex items-center justify-between text-left transition group hover:bg-rose-50/70"
+                    :class="settingsForm.bank_id === b.id ? 'bg-rose-50 border border-rose-200' : 'border border-transparent'"
+                  >
+                    <div class="flex items-center gap-2.5 min-w-0">
+                      <div
+                        class="w-8 h-8 rounded-lg bg-gradient-to-tr text-white flex items-center justify-center font-extrabold text-[10px] shrink-0 shadow-xs"
+                        :class="b.color || 'from-slate-700 to-slate-900'"
+                      >
+                        {{ b.id }}
+                      </div>
+                      <div class="min-w-0">
+                        <div class="font-bold text-slate-900 text-xs flex items-center gap-1.5 truncate">
+                          <span>{{ b.shortName }}</span>
+                          <span class="text-[9px] px-1.5 py-0.2 bg-slate-100 rounded font-mono text-slate-600 border border-slate-200">
+                            {{ b.bin }}
+                          </span>
+                        </div>
+                        <div class="text-[10px] text-slate-500 truncate">{{ b.name }}</div>
+                      </div>
+                    </div>
+
+                    <div v-if="settingsForm.bank_id === b.id" class="text-rose-600 shrink-0 text-sm font-bold pr-1">
+                      <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                  </button>
+
+                  <div v-if="filteredBanks.length === 0" class="py-6 text-center text-slate-400 italic text-xs">
+                    Không tìm thấy ngân hàng phù hợp với từ khóa "{{ bankSearchQuery }}"
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mode B: Fallback Manual Code Input -->
+            <div v-else class="space-y-1">
+              <input
+                v-model="settingsForm.bank_id"
+                type="text"
+                placeholder="Ví dụ: MB, VCB, 970422..."
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold uppercase focus:border-primary outline-none bg-white font-mono text-xs"
+              />
+              <p class="text-[10px] text-slate-400">Nhập mã viết tắt hoặc mã BIN chính thức của ngân hàng.</p>
+            </div>
+          </div>
+
+          <!-- 2. ACCOUNT NUMBER & HOLDER -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Số tài khoản nhận tiền</label>
+              <div class="relative">
+                <input
+                  v-model="settingsForm.bank_account_no"
+                  type="text"
+                  placeholder="Nhập số tài khoản"
+                  class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold focus:border-primary outline-none bg-white font-mono text-xs pr-10"
+                />
+                <button
+                  type="button"
+                  @click="copyBankNumber"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-700 transition"
+                  title="Sao chép số tài khoản"
+                >
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Tên chủ tài khoản (In hoa)</label>
+              <input
+                v-model="settingsForm.bank_account_name"
+                type="text"
+                placeholder="NGUYEN THI HAN"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 font-bold uppercase focus:border-primary outline-none bg-white text-xs"
+              />
+            </div>
+          </div>
+
+          <!-- Quick Test Transfer Amount Selector -->
+          <div class="p-3 bg-white rounded-xl border border-slate-200/80 flex items-center justify-between gap-2 text-xs">
+            <span class="font-bold text-slate-600 flex items-center gap-1.5">
+              <i class="fa-solid fa-flask text-accent"></i>
+              <span>Test số tiền:</span>
+            </span>
+            <div class="flex items-center gap-1">
+              <button
+                v-for="amt in [0, 50000, 100000, 250000]"
+                :key="amt"
+                type="button"
+                @click="testTransferAmount = amt"
+                class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition"
+                :class="testTransferAmount === amt ? 'bg-rose-50 text-primary border border-rose-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'"
+              >
+                {{ amt === 0 ? 'Tự do' : formatVND(amt) }}
+              </button>
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="block font-bold text-gray-700 mb-1">Số tài khoản nhận tiền</label>
-          <input v-model="settingsForm.bank_account_no" type="text" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-bold focus:border-primary outline-none bg-white font-mono" />
-        </div>
-        <div>
-          <label class="block font-bold text-gray-700 mb-1">Tên chủ tài khoản (In hoa)</label>
-          <input v-model="settingsForm.bank_account_name" type="text" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 font-bold uppercase focus:border-primary outline-none bg-white" />
+
+        <!-- Right 5 Cols: Interactive Live VietQR Standee Card -->
+        <div class="lg:col-span-5 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center text-center space-y-3">
+          <div class="w-full flex items-center justify-between pb-2 border-b border-slate-100">
+            <span class="text-[10px] font-black text-rose-600 uppercase tracking-widest flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+              <span>VietQR Realtime Preview</span>
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono font-bold">NAPAS 24/7</span>
+          </div>
+
+          <!-- QR Container -->
+          <div class="relative p-2 bg-slate-50 rounded-2xl border border-slate-200/80 shadow-inner group">
+            <img
+              :src="liveVietQrUrl"
+              alt="Mã QR Chuyển Khoản"
+              class="w-48 h-48 sm:w-52 sm:h-52 object-contain rounded-xl transition duration-300 group-hover:scale-105"
+              loading="lazy"
+            />
+          </div>
+
+          <!-- Beneficiary Details -->
+          <div class="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-200/70 text-left space-y-1 text-[11px]">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-500 font-medium">Ngân hàng:</span>
+              <strong class="text-slate-900">{{ selectedBankObj.shortName }} ({{ selectedBankObj.id }})</strong>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-500 font-medium">Số tài khoản:</span>
+              <strong class="font-mono text-rose-700 tracking-wide font-bold">{{ settingsForm.bank_account_no }}</strong>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-500 font-medium">Chủ tài khoản:</span>
+              <strong class="text-slate-900 uppercase font-bold">{{ settingsForm.bank_account_name }}</strong>
+            </div>
+          </div>
+
+          <!-- Test scan note -->
+          <p class="text-[10px] text-slate-400 leading-tight">
+            Quét bằng app ngân hàng (Vietcombank, MB, Techcombank...) để kiểm tra thông tin người nhận trước khi lưu.
+          </p>
         </div>
       </div>
     </div>

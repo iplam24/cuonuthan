@@ -1,40 +1,83 @@
 <!-- Top bar -->
-<header class="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-20 flex-shrink-0">
+<header class="h-16 bg-white/95 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-20 flex-shrink-0 shadow-xs">
+  <!-- Left Side: Title & Kitchen Status -->
   <div class="flex items-center gap-3">
-    <span class="w-2 h-2 rounded-full bg-primary"></span>
-    <span class="text-xs font-semibold text-slate-900 uppercase tracking-wide">
-      {{ currentTab === 'dashboard' ? 'Tổng quan' :
-         currentTab === 'orders' ? 'Đơn hàng & bếp' :
-         currentTab === 'products' ? 'Thực đơn & kho' :
-         currentTab === 'customers' ? 'Khách & shipper' : 'Cài đặt' }}
-    </span>
-    <button @click="toggleSound" class="ml-2 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium flex items-center gap-1.5 transition" :class="soundEnabled ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white border-slate-200 text-slate-400'" :title="soundEnabled ? 'Tắt âm chuông' : 'Bật âm chuông'">
-      <i class="fa-solid" :class="soundEnabled ? 'fa-bell text-slate-700' : 'fa-bell-slash text-slate-400'"></i>
-      <span class="hidden sm:inline">{{ soundEnabled ? 'Chuông bật' : 'Chuông tắt' }}</span>
+    <div class="flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping"></span>
+      <span class="text-xs sm:text-sm font-extrabold text-slate-900 uppercase tracking-wide">
+        {{ currentTab === 'dashboard' ? 'Tổng quan Dashboard' :
+           currentTab === 'orders' ? 'Điều phối Đơn hàng & Bếp' :
+           currentTab === 'products' ? 'Quản lý Thực đơn & Món' :
+           currentTab === 'customers' ? 'Khách hàng & Đội Shipper' : 'Cấu hình Hệ thống & VietQR' }}
+      </span>
+    </div>
+
+    <!-- Live Sound Alert Toggle with Animated Equalizer -->
+    <button
+      @click="toggleSound"
+      class="ml-2 px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition active:scale-95 shadow-xs"
+      :class="soundEnabled ? 'bg-rose-50 border-rose-200 text-rose-700 shadow-rose-100/50' : 'bg-slate-100 border-slate-200 text-slate-400'"
+      :title="soundEnabled ? 'Chuông báo đơn mới đang BẬT' : 'Chuông báo đơn mới đang TẮT'"
+    >
+      <div v-if="soundEnabled" class="flex items-end gap-0.5 h-3.5 w-3.5" aria-hidden="true">
+        <span class="w-1 bg-rose-600 rounded-full eq-bar-1"></span>
+        <span class="w-1 bg-rose-600 rounded-full eq-bar-2"></span>
+        <span class="w-1 bg-rose-600 rounded-full eq-bar-3"></span>
+      </div>
+      <i v-else class="fa-solid fa-bell-slash text-slate-400"></i>
+      <span class="hidden sm:inline font-mono">{{ soundEnabled ? 'Âm Báo ON' : 'MUTE' }}</span>
     </button>
   </div>
 
-  <div class="flex items-center gap-3 sm:gap-4 text-xs text-slate-600">
-    <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 text-slate-700 text-xs font-mono">
-      <i class="fa-regular fa-clock text-slate-500"></i><span>{{ liveClock }}</span>
+  <!-- Right Side: Live Clock, Fullscreen, Profile & Logout -->
+  <div class="flex items-center gap-2.5 sm:gap-4 text-xs">
+    <!-- Fullscreen Toggle for Kitchen Tablets -->
+    <button
+      type="button"
+      @click="toggleFullScreen"
+      class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold transition shadow-xs active:scale-95"
+      title="Chế độ toàn màn hình cho màn hình Bếp / POS"
+    >
+      <i class="fa-solid fa-expand text-slate-500"></i>
+      <span class="hidden lg:inline text-[11px]">Toàn Màn Hình</span>
+    </button>
+
+    <!-- Digital Live Seconds Clock -->
+    <div class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 bg-slate-900 text-emerald-400 rounded-xl border border-slate-800 font-mono text-xs font-bold shadow-inner">
+      <i class="fa-regular fa-clock text-emerald-500"></i>
+      <span>{{ liveClock }}</span>
     </div>
-    <div class="flex items-center gap-3 pl-3 border-l border-slate-200">
+
+    <!-- Admin Profile & Logout -->
+    <div class="flex items-center gap-2.5 pl-2 sm:pl-3 border-l border-slate-200">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-user-shield"></i></div>
-        <span class="hidden sm:inline font-medium text-slate-900">{{ userName }}</span>
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-700 text-white flex items-center justify-center text-xs shadow-xs font-extrabold ring-2 ring-rose-500/20">
+          <i class="fa-solid fa-user-tie"></i>
+        </div>
+        <div class="hidden sm:block text-left">
+          <div class="font-extrabold text-slate-900 leading-tight text-xs">{{ userName }}</div>
+          <div class="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Executive Ops</div>
+        </div>
       </div>
-      <button @click="logout" class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium transition flex items-center gap-1.5 text-xs" title="Đăng xuất">
-        <i class="fa-solid fa-arrow-right-from-bracket"></i><span class="hidden sm:inline">Đăng xuất</span>
+
+      <button
+        @click="logout"
+        class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold transition flex items-center gap-1.5 text-xs shadow-xs border border-rose-200/60 active:scale-95"
+        title="Đăng xuất khỏi trang quản trị"
+      >
+        <i class="fa-solid fa-power-off text-rose-600"></i>
+        <span class="hidden sm:inline">Đăng xuất</span>
       </button>
     </div>
   </div>
 </header>
 
 <!-- Mobile nav -->
-<div class="md:hidden flex bg-white border-b border-slate-200 overflow-x-auto text-xs font-medium px-2 py-2 gap-1 flex-shrink-0">
-  <button @click="currentTab = 'dashboard'" class="px-3 py-1.5 rounded-lg whitespace-nowrap flex items-center gap-1.5" :class="currentTab === 'dashboard' ? 'bg-primary text-white' : 'text-slate-600 hover:text-slate-900'"><i class="fa-solid fa-chart-pie"></i><span>Tổng quan</span></button>
-  <button @click="currentTab = 'orders'" class="px-3 py-1.5 rounded-lg whitespace-nowrap flex items-center gap-1.5" :class="currentTab === 'orders' ? 'bg-primary text-white' : 'text-slate-600 hover:text-slate-900'"><i class="fa-solid fa-fire-burner"></i><span>Đơn hàng</span><span v-if="newOrdersCount > 0" class="bg-rose-600 text-white text-[10px] px-1.5 rounded-full">+{{ newOrdersCount }}</span></button>
-  <button @click="currentTab = 'products'" class="px-3 py-1.5 rounded-lg whitespace-nowrap flex items-center gap-1.5" :class="currentTab === 'products' ? 'bg-primary text-white' : 'text-slate-600 hover:text-slate-900'"><i class="fa-solid fa-utensils"></i><span>Thực đơn</span></button>
-  <button @click="currentTab = 'customers'" class="px-3 py-1.5 rounded-lg whitespace-nowrap flex items-center gap-1.5" :class="currentTab === 'customers' ? 'bg-primary text-white' : 'text-slate-600 hover:text-slate-900'"><i class="fa-solid fa-motorcycle"></i><span>Khách & Shipper</span></button>
-  <button @click="currentTab = 'settings'" class="px-3 py-1.5 rounded-lg whitespace-nowrap flex items-center gap-1.5" :class="currentTab === 'settings' ? 'bg-primary text-white' : 'text-slate-600 hover:text-slate-900'"><i class="fa-solid fa-sliders"></i><span>Cài đặt</span></button>
+<div class="md:hidden flex bg-white border-b border-slate-200 overflow-x-auto text-xs font-bold px-2 py-2 gap-1.5 flex-shrink-0 always-scrollbar">
+  <button @click="currentTab = 'dashboard'" class="px-3 py-1.5 rounded-xl whitespace-nowrap flex items-center gap-1.5 transition" :class="currentTab === 'dashboard' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 bg-slate-100'"><i class="fa-solid fa-chart-pie"></i><span>Tổng quan</span></button>
+  <button @click="currentTab = 'orders'" class="px-3 py-1.5 rounded-xl whitespace-nowrap flex items-center gap-1.5 transition" :class="currentTab === 'orders' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 bg-slate-100'"><i class="fa-solid fa-fire-burner"></i><span>Đơn hàng</span><span v-if="newOrdersCount > 0" class="bg-rose-600 text-white text-[10px] px-1.5 rounded-full font-black">+{{ newOrdersCount }}</span></button>
+  <button @click="currentTab = 'products'" class="px-3 py-1.5 rounded-xl whitespace-nowrap flex items-center gap-1.5 transition" :class="currentTab === 'products' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 bg-slate-100'"><i class="fa-solid fa-utensils"></i><span>Thực đơn</span></button>
+  <button @click="currentTab = 'customers'" class="px-3 py-1.5 rounded-xl whitespace-nowrap flex items-center gap-1.5 transition" :class="currentTab === 'customers' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 bg-slate-100'"><i class="fa-solid fa-motorcycle"></i><span>Khách & Shipper</span></button>
+  <button @click="currentTab = 'settings'" class="px-3 py-1.5 rounded-xl whitespace-nowrap flex items-center gap-1.5 transition" :class="currentTab === 'settings' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 bg-slate-100'"><i class="fa-solid fa-sliders"></i><span>Cài đặt</span></button>
 </div>
+

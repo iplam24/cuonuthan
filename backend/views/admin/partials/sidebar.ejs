@@ -1,36 +1,134 @@
 <!-- Desktop navigation -->
-<aside class="w-60 bg-slate-950 text-slate-300 flex-col flex-shrink-0 z-30 hidden md:flex border-r border-slate-800 h-screen sticky top-0">
-  <div class="h-16 px-4 border-b border-slate-800 flex items-center gap-3">
-    <div class="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-sm ring-1 ring-white/10" aria-hidden="true">
-      <svg viewBox="0 0 32 32" class="w-5 h-5 fill-none stroke-current" stroke-width="2.4" stroke-linecap="round"><path d="M8 8v8a8 8 0 0 0 16 0V8M8 12h16M12 8v5M20 8v5"/></svg>
-    </div>
-    <div class="min-w-0">
-      <h1 class="font-semibold text-sm text-white tracking-tight">Quản trị bếp</h1>
-      <p class="text-[10px] text-slate-500 truncate">Út Hân Cuốn · Kitchen Ops</p>
+<aside class="w-64 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-300 flex-col flex-shrink-0 z-30 hidden md:flex border-r border-slate-800/80 h-screen sticky top-0 shadow-command select-none">
+  <!-- Brand Header -->
+  <div class="h-16 px-4 border-b border-slate-800/80 flex items-center justify-between">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="relative">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-rose-400 p-0.5 shadow-glow-rose flex items-center justify-center">
+          <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-rose-500 font-extrabold text-base">
+            <i class="fa-solid fa-fire-burner"></i>
+          </div>
+        </div>
+        <span class="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+          <span v-if="socketConnected" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 border-2 border-slate-950" :class="socketConnected ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+        </span>
+      </div>
+      <div class="min-w-0">
+        <div class="flex items-center gap-1.5">
+          <h1 class="font-extrabold text-sm text-white tracking-tight truncate">Út Hân Cuốn</h1>
+          <span class="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-400 text-[9px] font-mono font-bold border border-rose-500/30 uppercase">OPS</span>
+        </div>
+        <p class="text-[10px] text-slate-400 truncate flex items-center gap-1 mt-0.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+          <span>Kitchen Control Hub</span>
+        </p>
+      </div>
     </div>
   </div>
 
-  <nav class="flex-1 p-3 space-y-1 overflow-y-auto text-xs font-medium">
-    <button @click="currentTab = 'dashboard'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-left" :class="currentTab === 'dashboard' ? 'bg-primary text-white' : 'hover:bg-slate-900 text-slate-400 hover:text-white'">
-      <i class="fa-solid fa-chart-pie w-4 text-center"></i><span>Tổng quan</span>
+  <!-- Nav Tabs -->
+  <nav class="flex-1 p-3 space-y-1.5 overflow-y-auto text-xs font-semibold always-scrollbar">
+    <div class="px-3 pt-2 pb-1 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Trung tâm điều phối</div>
+
+    <button
+      @click="currentTab = 'dashboard'"
+      class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 text-left group"
+      :class="currentTab === 'dashboard' ? 'bg-gradient-to-r from-rose-600 to-rose-700 text-white shadow-lg shadow-rose-950/60 ring-1 ring-white/10' : 'text-slate-400 hover:text-white hover:bg-slate-800/70'"
+    >
+      <div class="w-5 text-center transition-transform group-hover:scale-110" :class="currentTab === 'dashboard' ? 'text-white' : 'text-slate-400 group-hover:text-rose-400'">
+        <i class="fa-solid fa-chart-pie"></i>
+      </div>
+      <span class="flex-1">Tổng quan Dashboard</span>
+      <i v-if="currentTab === 'dashboard'" class="fa-solid fa-chevron-right text-[10px] opacity-70"></i>
     </button>
-    <button @click="currentTab = 'orders'; clearNewOrdersBadge()" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition text-left" :class="currentTab === 'orders' ? 'bg-primary text-white' : 'hover:bg-slate-900 text-slate-400 hover:text-white'">
-      <span class="flex items-center gap-3"><i class="fa-solid fa-fire-burner w-4 text-center"></i><span>Đơn hàng & bếp</span></span>
-      <span v-if="newOrdersCount > 0" class="bg-white/15 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full">+{{ newOrdersCount }}</span>
+
+    <button
+      @click="currentTab = 'orders'; clearNewOrdersBadge()"
+      class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-150 text-left group"
+      :class="currentTab === 'orders' ? 'bg-gradient-to-r from-rose-600 to-rose-700 text-white shadow-lg shadow-rose-950/60 ring-1 ring-white/10' : 'text-slate-400 hover:text-white hover:bg-slate-800/70'"
+    >
+      <div class="flex items-center gap-3">
+        <div class="w-5 text-center transition-transform group-hover:scale-110" :class="currentTab === 'orders' ? 'text-white' : 'text-slate-400 group-hover:text-rose-400'">
+          <i class="fa-solid fa-fire-burner"></i>
+        </div>
+        <span>Đơn hàng & Bếp nấu</span>
+      </div>
+      <span
+        v-if="newOrdersCount > 0"
+        class="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs animate-pulse"
+      >
+        +{{ newOrdersCount }}
+      </span>
+      <i v-else-if="currentTab === 'orders'" class="fa-solid fa-chevron-right text-[10px] opacity-70"></i>
     </button>
-    <button @click="currentTab = 'products'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-left" :class="currentTab === 'products' ? 'bg-primary text-white' : 'hover:bg-slate-900 text-slate-400 hover:text-white'">
-      <i class="fa-solid fa-utensils w-4 text-center"></i><span>Thực đơn & kho</span>
+
+    <button
+      @click="currentTab = 'products'"
+      class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 text-left group"
+      :class="currentTab === 'products' ? 'bg-gradient-to-r from-rose-600 to-rose-700 text-white shadow-lg shadow-rose-950/60 ring-1 ring-white/10' : 'text-slate-400 hover:text-white hover:bg-slate-800/70'"
+    >
+      <div class="w-5 text-center transition-transform group-hover:scale-110" :class="currentTab === 'products' ? 'text-white' : 'text-slate-400 group-hover:text-rose-400'">
+        <i class="fa-solid fa-utensils"></i>
+      </div>
+      <span class="flex-1">Thực đơn & Món cuốn</span>
+      <i v-if="currentTab === 'products'" class="fa-solid fa-chevron-right text-[10px] opacity-70"></i>
     </button>
-    <button @click="currentTab = 'customers'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-left" :class="currentTab === 'customers' ? 'bg-primary text-white' : 'hover:bg-slate-900 text-slate-400 hover:text-white'">
-      <i class="fa-solid fa-motorcycle w-4 text-center"></i><span>Khách & shipper</span>
+
+    <div class="px-3 pt-3 pb-1 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Vận hành & Đối tác</div>
+
+    <button
+      @click="currentTab = 'customers'"
+      class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 text-left group"
+      :class="currentTab === 'customers' ? 'bg-gradient-to-r from-rose-600 to-rose-700 text-white shadow-lg shadow-rose-950/60 ring-1 ring-white/10' : 'text-slate-400 hover:text-white hover:bg-slate-800/70'"
+    >
+      <div class="w-5 text-center transition-transform group-hover:scale-110" :class="currentTab === 'customers' ? 'text-white' : 'text-slate-400 group-hover:text-rose-400'">
+        <i class="fa-solid fa-motorcycle"></i>
+      </div>
+      <span class="flex-1">Khách hàng & Shipper</span>
+      <i v-if="currentTab === 'customers'" class="fa-solid fa-chevron-right text-[10px] opacity-70"></i>
     </button>
-    <button @click="currentTab = 'settings'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-left" :class="currentTab === 'settings' ? 'bg-primary text-white' : 'hover:bg-slate-900 text-slate-400 hover:text-white'">
-      <i class="fa-solid fa-sliders w-4 text-center"></i><span>Cài đặt</span>
+
+    <button
+      @click="currentTab = 'settings'"
+      class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 text-left group"
+      :class="currentTab === 'settings' ? 'bg-gradient-to-r from-rose-600 to-rose-700 text-white shadow-lg shadow-rose-950/60 ring-1 ring-white/10' : 'text-slate-400 hover:text-white hover:bg-slate-800/70'"
+    >
+      <div class="w-5 text-center transition-transform group-hover:scale-110" :class="currentTab === 'settings' ? 'text-white' : 'text-slate-400 group-hover:text-rose-400'">
+        <i class="fa-solid fa-sliders"></i>
+      </div>
+      <span class="flex-1">Cài đặt & VietQR</span>
+      <i v-if="currentTab === 'settings'" class="fa-solid fa-chevron-right text-[10px] opacity-70"></i>
     </button>
   </nav>
 
-  <div class="p-3 border-t border-slate-800 text-[10px] text-slate-500 flex items-center justify-between">
-    <span class="flex items-center gap-2"><span class="relative flex h-2 w-2"><span v-if="socketConnected" class="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-60"></span><span class="relative rounded-full h-2 w-2" :class="socketConnected ? 'bg-emerald-500' : 'bg-rose-500'"></span></span>{{ socketConnected ? 'Realtime sẵn sàng' : 'Mất kết nối' }}</span>
-    <a href="/" target="_blank" class="p-2 rounded-lg hover:bg-slate-900 hover:text-white transition" title="Xem menu"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+  <!-- Telemetry & Storefront Link -->
+  <div class="p-3 border-t border-slate-800/80 bg-slate-950/50 space-y-2">
+    <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="relative flex h-2 w-2">
+          <span v-if="socketConnected" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2" :class="socketConnected ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+        </span>
+        <span class="font-medium text-slate-300">{{ socketConnected ? 'Socket Live' : 'Mất kết nối' }}</span>
+      </div>
+      <span class="font-mono text-[10px] font-bold text-emerald-400 bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-800/50">
+        {{ socketConnected ? 'SYNC 100%' : 'OFFLINE' }}
+      </span>
+    </div>
+
+    <a
+      href="/"
+      target="_blank"
+      class="w-full flex items-center justify-between p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition text-[11px] font-semibold group"
+      title="Mở Storefront Khách Hàng"
+    >
+      <span class="flex items-center gap-2">
+        <i class="fa-solid fa-store text-rose-400 group-hover:scale-110 transition-transform"></i>
+        <span>Xem Menu Khách</span>
+      </span>
+      <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-500 group-hover:text-white transition"></i>
+    </a>
   </div>
 </aside>
+

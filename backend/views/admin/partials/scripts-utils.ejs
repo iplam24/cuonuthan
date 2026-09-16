@@ -47,6 +47,25 @@ function playOrderBell() {
   }
 }
 
+function toggleFullScreen() {
+  try {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  } catch (e) {
+    console.warn('Lỗi fullscreen:', e);
+  }
+}
+
+function copyText(txt, label = 'nội dung') {
+  if (navigator.clipboard && txt) {
+    navigator.clipboard.writeText(String(txt).trim());
+    notify(`Đã sao chép ${label}!`);
+  }
+}
+
 function getErrorMessage(error, fallback = 'Có lỗi xảy ra. Vui lòng thử lại.') {
   return error?.response?.data?.message || error?.message || fallback;
 }

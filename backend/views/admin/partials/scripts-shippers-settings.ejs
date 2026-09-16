@@ -182,6 +182,9 @@ async function saveSettingsForm() {
   try {
     const payload = {
       ...settingsForm,
+      bank_name: settingsForm.bank_id,
+      bank_account_number: settingsForm.bank_account_no,
+      bank_account_holder: settingsForm.bank_account_name,
       facebook_url: settingsForm.facebook_url ? settingsForm.facebook_url.trim() : '',
       zalo_url: extractZaloId(settingsForm.zalo_url),
       address: settingsForm.address ? settingsForm.address.trim() : '',
@@ -199,4 +202,130 @@ async function saveSettingsForm() {
   } catch(e) {
     notify(e.response?.data?.message || 'Lỗi kết nối máy chủ', 'error');
   }
+}
+
+// 26 Major Vietnamese Banks in VietQR / NAPAS Network
+const VIETNAMESE_BANKS = [
+  { id: 'MB', bin: '970422', shortName: 'MBBank', name: 'Ngân hàng TMCP Quân Đội', popular: true, color: 'from-blue-600 to-indigo-800' },
+  { id: 'VCB', bin: '970436', shortName: 'Vietcombank', name: 'Ngân hàng TMCP Ngoại Thương VN', popular: true, color: 'from-emerald-700 to-green-900' },
+  { id: 'TCB', bin: '970407', shortName: 'Techcombank', name: 'Ngân hàng TMCP Kỹ Thương VN', popular: true, color: 'from-red-600 to-rose-800' },
+  { id: 'BIDV', bin: '970418', shortName: 'BIDV', name: 'Ngân hàng TMCP Đầu Tư & Phát Triển VN', popular: true, color: 'from-teal-700 to-emerald-800' },
+  { id: 'ICB', bin: '970415', shortName: 'VietinBank', name: 'Ngân hàng TMCP Công Thương VN', popular: true, color: 'from-blue-600 to-cyan-800' },
+  { id: 'ACB', bin: '970416', shortName: 'ACB', name: 'Ngân hàng TMCP Á Châu', popular: true, color: 'from-blue-500 to-blue-700' },
+  { id: 'VPB', bin: '970432', shortName: 'VPBank', name: 'Ngân hàng TMCP Việt Nam Thịnh Vượng', popular: true, color: 'from-emerald-600 to-green-700' },
+  { id: 'TPB', bin: '970423', shortName: 'TPBank', name: 'Ngân hàng TMCP Tiên Phong', popular: true, color: 'from-purple-600 to-pink-700' },
+  { id: 'STB', bin: '970403', shortName: 'Sacombank', name: 'Ngân hàng TMCP Sài Gòn Thương Tín', popular: true, color: 'from-blue-700 to-indigo-900' },
+  { id: 'VBA', bin: '970405', shortName: 'Agribank', name: 'Ngân hàng Nông Nghiệp & PT Nông Thôn', popular: true, color: 'from-red-800 to-red-950' },
+  { id: 'HDB', bin: '970437', shortName: 'HDBank', name: 'Ngân hàng TMCP Phát Triển TP.HCM', popular: false, color: 'from-amber-600 to-red-700' },
+  { id: 'VIB', bin: '970441', shortName: 'VIB', name: 'Ngân hàng TMCP Quốc Tế Việt Nam', popular: false, color: 'from-blue-600 to-amber-600' },
+  { id: 'SHB', bin: '970443', shortName: 'SHB', name: 'Ngân hàng TMCP Sài Gòn - Hà Nội', popular: false, color: 'from-orange-600 to-amber-700' },
+  { id: 'OCB', bin: '970448', shortName: 'OCB', name: 'Ngân hàng TMCP Phương Đông', popular: false, color: 'from-green-600 to-emerald-700' },
+  { id: 'MSB', bin: '970426', shortName: 'MSB', name: 'Ngân hàng TMCP Hàng Hải', popular: false, color: 'from-red-600 to-orange-600' },
+  { id: 'SEAB', bin: '970440', shortName: 'SeABank', name: 'Ngân hàng TMCP Đông Nam Á', popular: false, color: 'from-red-700 to-rose-900' },
+  { id: 'NAB', bin: '970428', shortName: 'NamABank', name: 'Ngân hàng TMCP Nam Á', popular: false, color: 'from-amber-500 to-yellow-600' },
+  { id: 'LPB', bin: '970449', shortName: 'LPBank', name: 'Ngân hàng TMCP Lộc Phát VN', popular: false, color: 'from-amber-600 to-orange-700' },
+  { id: 'VAB', bin: '970427', shortName: 'VietABank', name: 'Ngân hàng TMCP Việt Á', popular: false, color: 'from-orange-500 to-red-600' },
+  { id: 'BAB', bin: '970409', shortName: 'BacABank', name: 'Ngân hàng TMCP Bắc Á', popular: false, color: 'from-amber-600 to-yellow-700' },
+  { id: 'BVB', bin: '970438', shortName: 'BaoVietBank', name: 'Ngân hàng TMCP Bảo Việt', popular: false, color: 'from-blue-600 to-cyan-700' },
+  { id: 'KLB', bin: '970452', shortName: 'KienLongBank', name: 'Ngân hàng TMCP Kiên Long', popular: false, color: 'from-green-600 to-emerald-800' },
+  { id: 'CAKE', bin: '546034', shortName: 'CAKE by VPBank', name: 'Ngân hàng số CAKE', popular: false, isDigital: true, color: 'from-pink-600 to-purple-600' },
+  { id: 'TIMO', bin: '963388', shortName: 'Timo by BVBank', name: 'Ngân hàng số Timo', popular: false, isDigital: true, color: 'from-purple-700 to-indigo-800' },
+  { id: 'VTLMONEY', bin: '971005', shortName: 'Viettel Money', name: 'Tổng công ty Dịch vụ số Viettel', popular: false, isDigital: true, color: 'from-red-600 to-rose-700' },
+  { id: 'VNPTMONEY', bin: '971011', shortName: 'VNPT Money', name: 'Tập đoàn Bưu chính Viễn thông VN', popular: false, isDigital: true, color: 'from-blue-600 to-cyan-600' }
+];
+
+const bankSearchQuery = ref('');
+const bankFilterType = ref('all');
+const bankDropdownOpen = ref(false);
+const testTransferAmount = ref(50000);
+const customBankInputMode = ref(false);
+
+const filteredBanks = computed(() => {
+  const query = (bankSearchQuery.value || '').trim().toLowerCase();
+  return VIETNAMESE_BANKS.filter(b => {
+    if (bankFilterType.value === 'popular' && !b.popular) return false;
+    if (bankFilterType.value === 'digital' && !b.isDigital) return false;
+    if (!query) return true;
+    return (
+      b.id.toLowerCase().includes(query) ||
+      b.shortName.toLowerCase().includes(query) ||
+      b.name.toLowerCase().includes(query) ||
+      b.bin.includes(query)
+    );
+  });
+});
+
+const selectedBankObj = computed(() => {
+  const cur = (settingsForm.bank_id || '').trim().toUpperCase();
+  return (
+    VIETNAMESE_BANKS.find(b => b.id.toUpperCase() === cur || b.shortName.toUpperCase() === cur || b.bin === cur) || {
+      id: settingsForm.bank_id || 'MB',
+      bin: '970422',
+      shortName: settingsForm.bank_id || 'Ngân hàng',
+      name: 'Ngân hàng chuyển khoản',
+      color: 'from-slate-700 to-slate-900'
+    }
+  );
+});
+
+const liveVietQrUrl = computed(() => {
+  const bId = (settingsForm.bank_id || 'MB').trim();
+  const accNo = (settingsForm.bank_account_no || '0988888888').trim();
+  const accName = encodeURIComponent((settingsForm.bank_account_name || 'NGUYEN THI HAN').trim());
+  const desc = encodeURIComponent('UH TEST');
+  const amt = Math.round(Number(testTransferAmount.value) || 0);
+  return `https://img.vietqr.io/image/${bId}-${accNo}-compact2.png?amount=${amt}&addInfo=${desc}&accountName=${accName}`;
+});
+
+function selectBank(b) {
+  settingsForm.bank_id = b.id;
+  bankDropdownOpen.value = false;
+  customBankInputMode.value = false;
+  notify(`Đã chọn ngân hàng ${b.shortName} (${b.id})`);
+}
+
+function copyBankNumber() {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(settingsForm.bank_account_no || '');
+    notify('Đã sao chép số tài khoản vào clipboard!');
+  }
+}
+
+function printQrStandee() {
+  const win = window.open('', '_blank', 'width=600,height=750');
+  if (!win) return;
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Standee VietQR - ${settingsForm.brand_name}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 40px; margin: 0; background: #fff; }
+          .card { border: 2px solid #be123c; border-radius: 24px; padding: 30px; max-width: 420px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+          .title { font-size: 22px; font-weight: 800; color: #be123c; margin-bottom: 4px; text-transform: uppercase; }
+          .sub { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+          .qr-img { width: 280px; height: 280px; object-fit: contain; margin: 0 auto; border-radius: 12px; }
+          .info { margin-top: 20px; background: #f8fafc; padding: 16px; border-radius: 16px; text-align: left; font-size: 13px; }
+          .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+          .label { color: #64748b; font-weight: 600; }
+          .val { font-weight: 700; color: #0f172a; }
+          @media print { body { padding: 0; } button { display: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="title">${settingsForm.brand_name}</div>
+          <div class="sub">Quét mã VietQR chuyển khoản thanh toán 24/7</div>
+          <img src="${liveVietQrUrl.value}" class="qr-img" />
+          <div class="info">
+            <div class="info-row"><span class="label">Ngân hàng:</span><span class="val">${selectedBankObj.value.shortName} (${selectedBankObj.value.id})</span></div>
+            <div class="info-row"><span class="label">Số tài khoản:</span><span class="val">${settingsForm.bank_account_no}</span></div>
+            <div class="info-row"><span class="label">Chủ tài khoản:</span><span class="val">${settingsForm.bank_account_name}</span></div>
+          </div>
+          <button onclick="window.print()" style="margin-top:20px;padding:10px 24px;background:#be123c;color:#fff;border:none;border-radius:12px;font-weight:700;cursor:pointer;">In Standee Này</button>
+        </div>
+      </body>
+    </html>
+  `);
+  win.document.close();
 }

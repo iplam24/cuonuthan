@@ -1,5 +1,5 @@
 <script>
-  const { createApp, ref, reactive, onMounted } = Vue;
+  const { createApp, ref, reactive, computed, onMounted } = Vue;
 
   createApp({
     setup() {
@@ -345,7 +345,21 @@
         saveCategoryEdit,
         cancelCategoryEdit,
         onProductImageChange,
-        refreshDashboard
+        refreshDashboard,
+        toggleFullScreen,
+        VIETNAMESE_BANKS,
+        bankSearchQuery,
+        bankFilterType,
+        bankDropdownOpen,
+        testTransferAmount,
+        customBankInputMode,
+        filteredBanks,
+        selectedBankObj,
+        liveVietQrUrl,
+        selectBank,
+        copyBankNumber,
+        copyText,
+        printQrStandee
       };
     }
   }).mount('#admin-app');
