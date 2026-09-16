@@ -29,14 +29,9 @@
               <img src="/brand-mark.svg" alt="Út Hân Logo" class="h-8 w-8 object-contain transition duration-300 group-hover:scale-105" />
             </div>
           </div>
-          <div>
-            <span class="block text-lg sm:text-xl font-extrabold leading-none text-slate-900 tracking-tight group-hover:text-rose-600 transition">
-              {{ settingsStore.brandName }}
-            </span>
-            <span class="mt-0.5 block text-[10px] font-bold uppercase tracking-widest text-rose-600">
-              Món Cuốn Việt Nam
-            </span>
-          </div>
+          <span class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight group-hover:text-rose-600 transition">
+            {{ settingsStore.brandName }}
+          </span>
         </router-link>
 
         <!-- Desktop Navigation Links -->
