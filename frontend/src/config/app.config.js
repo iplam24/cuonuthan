@@ -1,13 +1,39 @@
 const runtimeEnv = import.meta.env || {};
-const isBrowser = typeof window !== 'undefined';
-const isLocal = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-const defaultBackend = isLocal ? 'http://localhost:5000' : 'https://cuonuthan.vercel.app';
+
+function getActiveBackend() {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    // On local machine dev, use local port 5000
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return runtimeEnv.VITE_BACKEND_URL || 'http://localhost:5000';
+    }
+    // On any hosted domain (e.g. cuonuthan.pages.dev), NEVER allow localhost
+    if (runtimeEnv.VITE_BACKEND_URL && !runtimeEnv.VITE_BACKEND_URL.includes('localhost')) {
+      return runtimeEnv.VITE_BACKEND_URL;
+    }
+    return 'https://cuonuthan.vercel.app';
+  }
+  return 'https://cuonuthan.vercel.app';
+}
+
+function getActiveApiUrl() {
+  const backend = getActiveBackend();
+  return `${backend}/api/v1`;
+}
 
 export const appConfig = {
-  apiBaseUrl: runtimeEnv.VITE_API_BASE_URL || `${defaultBackend}/api/v1`,
-  socketUrl: runtimeEnv.VITE_SOCKET_URL || defaultBackend,
-  uploadUrl: runtimeEnv.VITE_UPLOAD_URL || `${defaultBackend}/uploads`,
-  backendUrl: runtimeEnv.VITE_BACKEND_URL || defaultBackend,
+  get apiBaseUrl() {
+    return getActiveApiUrl();
+  },
+  get socketUrl() {
+    return getActiveBackend();
+  },
+  get uploadUrl() {
+    return `${getActiveBackend()}/uploads`;
+  },
+  get backendUrl() {
+    return getActiveBackend();
+  },
 
   defaultAppName: 'Út Hân Cuốn',
   defaultSlogan: 'Bếp Ấm Út Hân - Món Cuốn Chuẩn Vị, Giao Tận Cửa',
