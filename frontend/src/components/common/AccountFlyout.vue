@@ -158,122 +158,126 @@
     </transition>
 
     <!-- LOGOUT CONFIRMATION MODAL -->
-    <div
-      v-if="showLogoutConfirm"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-fade-in"
-      @click.self="showLogoutConfirm = false"
-    >
-      <div class="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 text-center shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200">
-        <div class="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200/80 flex items-center justify-center text-rose-600 mx-auto shadow-xs">
-          <LogOut class="w-7 h-7" />
-        </div>
-        <div>
-          <h3 class="font-extrabold text-lg text-slate-900">Xác nhận đăng xuất?</h3>
-          <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
-            Bạn có chắc chắn muốn đăng xuất khỏi tài khoản <strong>{{ authStore.userName }}</strong> không? Giỏ hàng của bạn vẫn được lưu lại an toàn.
-          </p>
-        </div>
-        <div class="flex items-center gap-2.5 pt-2">
-          <AppButton
-            variant="outline"
-            class="flex-1"
-            @click="showLogoutConfirm = false"
-          >
-            Ở lại
-          </AppButton>
-          <AppButton
-            variant="danger"
-            class="flex-1"
-            @click="confirmLogout"
-          >
-            Đăng xuất
-          </AppButton>
-        </div>
-      </div>
-    </div>
-
-    <!-- CHANGE PASSWORD MODAL -->
-    <div
-      v-if="showPasswordModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-fade-in"
-      @click.self="showPasswordModal = false"
-    >
-      <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div class="flex items-center gap-2.5">
-            <div class="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200/80 flex items-center justify-center text-purple-600">
-              <KeyRound class="w-5 h-5" />
-            </div>
-            <div>
-              <h3 class="font-extrabold text-base text-slate-900">Đổi Mật Khẩu</h3>
-              <p class="text-[11px] text-slate-500">Tối thiểu 6 ký tự để bảo vệ tài khoản</p>
-            </div>
+    <Teleport to="body">
+      <div
+        v-if="showLogoutConfirm"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-fade-in"
+        @click.self="showLogoutConfirm = false"
+      >
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 text-center shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200">
+          <div class="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200/80 flex items-center justify-center text-rose-600 mx-auto shadow-xs">
+            <LogOut class="w-7 h-7" />
           </div>
-          <button
-            type="button"
-            class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
-            @click="showPasswordModal = false"
-          >
-            <X class="w-4 h-4" />
-          </button>
-        </div>
-
-        <form class="space-y-4" @submit.prevent="handleChangePassword">
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-700">Mật khẩu hiện tại</label>
-            <input
-              v-model="pwdForm.currentPassword"
-              type="password"
-              placeholder="Nhập mật khẩu đang dùng"
-              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-500 focus:outline-none focus:ring-4 focus:ring-rose-500/10 transition"
-              required
-            />
+          <div>
+            <h3 class="font-extrabold text-lg text-slate-900">Xác nhận đăng xuất?</h3>
+            <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản <strong>{{ authStore.userName }}</strong> không? Giỏ hàng của bạn vẫn được lưu lại an toàn.
+            </p>
           </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-700">Mật khẩu mới</label>
-            <input
-              v-model="pwdForm.newPassword"
-              type="password"
-              placeholder="Tối thiểu 6 ký tự"
-              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-500 focus:outline-none focus:ring-4 focus:ring-rose-500/10 transition"
-              required
-            />
-          </div>
-
-          <div class="space-y-1.5">
-            <label class="block text-xs font-bold text-slate-700">Xác nhận mật khẩu mới</label>
-            <input
-              v-model="pwdForm.confirmPassword"
-              type="password"
-              placeholder="Nhập lại mật khẩu mới"
-              class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-500 focus:outline-none focus:ring-4 focus:ring-rose-500/10 transition"
-              required
-            />
-          </div>
-
-          <p v-if="pwdError" class="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
-            {{ pwdError }}
-          </p>
-
-          <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+          <div class="flex items-center gap-2.5 pt-2">
             <AppButton
               variant="outline"
-              type="button"
-              @click="showPasswordModal = false"
+              class="flex-1"
+              @click="showLogoutConfirm = false"
             >
-              Hủy
+              Ở lại
             </AppButton>
             <AppButton
-              type="submit"
-              :loading="pwdLoading"
+              variant="danger"
+              class="flex-1"
+              @click="confirmLogout"
             >
-              Cập nhật mật khẩu
+              Đăng xuất
             </AppButton>
           </div>
-        </form>
+        </div>
       </div>
-    </div>
+    </Teleport>
+
+    <!-- CHANGE PASSWORD MODAL -->
+    <Teleport to="body">
+      <div
+        v-if="showPasswordModal"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-fade-in"
+        @click.self="showPasswordModal = false"
+      >
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200/80 flex items-center justify-center text-purple-600">
+                <KeyRound class="w-5 h-5" />
+              </div>
+              <div>
+                <h3 class="font-extrabold text-base text-slate-900">Đổi Mật Khẩu</h3>
+                <p class="text-[11px] text-slate-500">Tối thiểu 6 ký tự để bảo vệ tài khoản</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+              @click="showPasswordModal = false"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+
+          <form class="space-y-4" @submit.prevent="handleChangePassword">
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-700">Mật khẩu hiện tại</label>
+              <input
+                v-model="pwdForm.currentPassword"
+                type="password"
+                placeholder="Nhập mật khẩu đang dùng"
+                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-500 focus:outline-none focus:ring-4 focus:ring-rose-500/10 transition"
+                required
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-700">Mật khẩu mới</label>
+              <input
+                v-model="pwdForm.newPassword"
+                type="password"
+                placeholder="Tối thiểu 6 ký tự"
+                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-500 focus:outline-none focus:ring-4 focus:ring-rose-500/10 transition"
+                required
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-700">Xác nhận mật khẩu mới</label>
+              <input
+                v-model="pwdForm.confirmPassword"
+                type="password"
+                placeholder="Nhập lại mật khẩu mới"
+                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-500 focus:outline-none focus:ring-4 focus:ring-rose-500/10 transition"
+                required
+              />
+            </div>
+
+            <p v-if="pwdError" class="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
+              {{ pwdError }}
+            </p>
+
+            <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <AppButton
+                variant="outline"
+                type="button"
+                @click="showPasswordModal = false"
+              >
+                Hủy
+              </AppButton>
+              <AppButton
+                type="submit"
+                :loading="pwdLoading"
+              >
+                Cập nhật mật khẩu
+              </AppButton>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
