@@ -48,17 +48,19 @@ const routes = [
     ],
   },
 
-  // Redirect old admin paths directly to Backend EJS Admin SPA
+  // Redirect admin paths directly to Backend EJS Admin SPA
   {
     path: '/admin/:pathMatch(.*)*',
     beforeEnter() {
-      window.location.href = 'http://localhost:5000/admin';
+      const backendUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
+      window.location.href = `${backendUrl}/admin`;
     },
   },
   {
     path: '/admin',
     beforeEnter() {
-      window.location.href = 'http://localhost:5000/admin';
+      const backendUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
+      window.location.href = `${backendUrl}/admin`;
     },
   },
 

@@ -1,12 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { testConnection } from './config/database.js';
 import apiRouter from './routes/index.js';
 import adminViewRoutes from './routes/admin-view.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { env } from './config/env.js';
 import { getAllowedOrigins, isOriginAllowed, getRequestOrigin } from './utils/security.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -34,10 +38,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Cấu hình View Engine EJS cho SPA Admin
 app.set('view engine', 'ejs');
-app.set('views', path.resolve('views'));
+app.set('views', path.resolve(__dirname, '../views'));
 
 // Phục vụ ảnh upload tĩnh
-app.use('/uploads', express.static(path.resolve('uploads')));
+app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
 // Redirect trang chủ backend sang cổng Admin SPA
 app.get('/', (req, res) => {
