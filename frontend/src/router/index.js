@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import CustomerLayout from '../layouts/CustomerLayout.vue';
 import AuthLayout from '../layouts/AuthLayout.vue';
+import { appConfig } from '../config/app.config.js';
 
 // Customer Views
 import HomeView from '../views/customer/HomeView.vue';
@@ -52,15 +53,13 @@ const routes = [
   {
     path: '/admin/:pathMatch(.*)*',
     beforeEnter() {
-      const backendUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
-      window.location.href = `${backendUrl}/admin`;
+      window.location.href = `${appConfig.backendUrl}/admin`;
     },
   },
   {
     path: '/admin',
     beforeEnter() {
-      const backendUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
-      window.location.href = `${backendUrl}/admin`;
+      window.location.href = `${appConfig.backendUrl}/admin`;
     },
   },
 
