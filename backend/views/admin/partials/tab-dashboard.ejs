@@ -120,7 +120,7 @@
     <div
       class="p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between group relative overflow-hidden cursor-pointer"
       :class="(stats?.status_counts?.pending || 0) > 0 ? 'bg-amber-50/70 border-amber-300 shadow-glow-amber' : 'bg-white border-slate-200/80 shadow-soft hover:shadow-card'"
-      @click="currentTab = 'orders'"
+      @click="goToPendingOrders"
       title="Nhấn để xem các đơn đang chờ duyệt"
     >
       <div>

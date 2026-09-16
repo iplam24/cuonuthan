@@ -611,6 +611,7 @@ export const getAdminOrders = async (req, res, next) => {
       search,
       start_date,
       end_date,
+      include_active,
       page = 1,
       limit = 20,
     } = req.query;
@@ -638,14 +639,32 @@ export const getAdminOrders = async (req, res, next) => {
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
-    if (start_date) {
-      query += ` AND o.created_at >= ?`;
-      params.push(`${start_date} 00:00:00`);
-    }
+    const shouldIncludeActive = include_active === 'true' || include_active === true || include_active === '1';
 
-    if (end_date) {
-      query += ` AND o.created_at <= ?`;
-      params.push(`${end_date} 23:59:59`);
+    if (start_date && end_date) {
+      if (shouldIncludeActive && !status) {
+        query += ` AND ((o.created_at >= ? AND o.created_at <= ?) OR UPPER(o.status) IN ('PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'DELIVERING'))`;
+        params.push(`${start_date} 00:00:00`, `${end_date} 23:59:59`);
+      } else {
+        query += ` AND o.created_at >= ? AND o.created_at <= ?`;
+        params.push(`${start_date} 00:00:00`, `${end_date} 23:59:59`);
+      }
+    } else if (start_date) {
+      if (shouldIncludeActive && !status) {
+        query += ` AND (o.created_at >= ? OR UPPER(o.status) IN ('PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'DELIVERING'))`;
+        params.push(`${start_date} 00:00:00`);
+      } else {
+        query += ` AND o.created_at >= ?`;
+        params.push(`${start_date} 00:00:00`);
+      }
+    } else if (end_date) {
+      if (shouldIncludeActive && !status) {
+        query += ` AND (o.created_at <= ? OR UPPER(o.status) IN ('PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'DELIVERING'))`;
+        params.push(`${end_date} 23:59:59`);
+      } else {
+        query += ` AND o.created_at <= ?`;
+        params.push(`${end_date} 23:59:59`);
+      }
     }
 
     const countSql = `SELECT COUNT(*) as total FROM (${query}) as count_table`;

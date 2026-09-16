@@ -14,11 +14,15 @@ async function loadOrders(options = {}) {
   const silent = Boolean(options.silent);
   if (!silent) { loading.orders = true; errors.orders = ''; }
   try {
-    const limit = orderViewMode.value === 'kanban' ? 100 : orderPagination.limit;
+    const isKanban = orderViewMode.value === 'kanban';
+    const limit = isKanban ? 100 : orderPagination.limit;
     const params = {
       page: orderPagination.page,
       limit
     };
+    if (isKanban) {
+      params.include_active = 'true';
+    }
     const dateRange = getDateRange();
     if (dateRange.start_date) params.start_date = dateRange.start_date;
     if (dateRange.end_date) params.end_date = dateRange.end_date;
@@ -40,6 +44,17 @@ async function loadOrders(options = {}) {
     errors.orders = getErrorMessage(e, 'Không thể tải danh sách đơn hàng.');
     notify(errors.orders, 'error');
   } finally { if (!silent) loading.orders = false; }
+}
+
+function goToPendingOrders() {
+  currentTab.value = 'orders';
+  orderFilterStatus.value = '';
+  orderSearch.value = '';
+  orderFilterPayment.value = '';
+  orderDatePreset.value = 'all';
+  orderCustomDate.value = '';
+  orderPagination.page = 1;
+  loadOrders();
 }
 
 function changeOrderPage(p) {
