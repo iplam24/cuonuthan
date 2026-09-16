@@ -29,7 +29,10 @@ export function isOriginAllowed(origin, allowedOrigins = [], requestOrigin = '')
   if (!origin) return true;
   const normalizedOrigin = String(origin).replace(/\/$/, '');
   const normalizedRequestOrigin = String(requestOrigin || '').replace(/\/$/, '');
-  return normalizedOrigin === normalizedRequestOrigin || allowedOrigins.includes(normalizedOrigin);
+  if (normalizedOrigin === normalizedRequestOrigin) return true;
+  if (allowedOrigins.includes(normalizedOrigin)) return true;
+  if (normalizedOrigin.endsWith('.pages.dev') || normalizedOrigin.endsWith('.vercel.app')) return true;
+  return false;
 }
 
 export function safeEqualText(left, right) {

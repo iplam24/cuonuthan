@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { testConnection } from './config/database.js';
 import apiRouter from './routes/index.js';
@@ -36,12 +37,25 @@ app.use(cors((req, callback) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Cấu hình View Engine EJS cho SPA Admin
+// Cấu hình View Engine EJS cho SPA Admin - hỗ trợ đa đường dẫn serverless
+const potentialViewDirs = [
+  path.resolve(__dirname, '../views'),
+  path.resolve(process.cwd(), 'backend/views'),
+  path.resolve(process.cwd(), 'views')
+];
+const viewsDir = potentialViewDirs.find((dir) => fs.existsSync(dir)) || path.resolve(__dirname, '../views');
+
 app.set('view engine', 'ejs');
-app.set('views', path.resolve(__dirname, '../views'));
+app.set('views', viewsDir);
 
 // Phục vụ ảnh upload tĩnh
-app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+const potentialUploadDirs = [
+  path.resolve(__dirname, '../uploads'),
+  path.resolve(process.cwd(), 'backend/uploads'),
+  path.resolve(process.cwd(), 'uploads')
+];
+const uploadsDir = potentialUploadDirs.find((dir) => fs.existsSync(dir)) || path.resolve(__dirname, '../uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 // Redirect trang chủ backend sang cổng Admin SPA
 app.get('/', (req, res) => {
