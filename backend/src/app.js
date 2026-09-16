@@ -9,6 +9,7 @@ import adminViewRoutes from './routes/admin-view.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { env } from './config/env.js';
 import { getAllowedOrigins, isOriginAllowed, getRequestOrigin } from './utils/security.js';
+import { baseUploadDir } from './middleware/upload.middleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,11 +51,14 @@ app.set('views', viewsDir);
 
 // Phục vụ ảnh upload tĩnh
 const potentialUploadDirs = [
+  path.resolve(baseUploadDir, 'uploads'),
   path.resolve(__dirname, '../uploads'),
   path.resolve(process.cwd(), 'backend/uploads'),
   path.resolve(process.cwd(), 'uploads')
 ];
-const uploadsDir = potentialUploadDirs.find((dir) => fs.existsSync(dir)) || path.resolve(__dirname, '../uploads');
+const uploadsDir = potentialUploadDirs.find((dir) => {
+  try { return fs.existsSync(dir); } catch { return false; }
+}) || path.resolve(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsDir));
 
 // Redirect trang chủ backend sang cổng Admin SPA

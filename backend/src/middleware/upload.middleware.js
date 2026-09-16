@@ -1,13 +1,22 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
-// Ensure upload directories exist
-const uploadDirs = ['uploads', 'uploads/products', 'uploads/payments', 'uploads/avatars'];
+// Determine writable upload directory (serverless environments like Vercel have read-only task root)
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+export const baseUploadDir = isServerless ? path.join(os.tmpdir(), 'uthan_uploads') : process.cwd();
+
+// Ensure upload directories exist safely without crashing read-only lambdas
+const uploadDirs = ['', 'uploads', 'uploads/products', 'uploads/payments', 'uploads/avatars'];
 uploadDirs.forEach((dir) => {
-  const fullPath = path.resolve(process.cwd(), dir);
-  if (!fs.existsSync(fullPath)) {
-    fs.mkdirSync(fullPath, { recursive: true });
+  try {
+    const fullPath = path.resolve(baseUploadDir, dir);
+    if (!fs.existsSync(fullPath)) {
+      fs.mkdirSync(fullPath, { recursive: true });
+    }
+  } catch (err) {
+    console.warn(`[UPLOAD] Non-fatal notice: upload directory ${dir} cannot be created:`, err.message);
   }
 });
 
@@ -17,7 +26,15 @@ const storage = multer.diskStorage({
     if (req.baseUrl.includes('payment') || req.body.type === 'payment') {
       dest = 'uploads/payments';
     }
-    cb(null, path.resolve(process.cwd(), dest));
+    const fullPath = path.resolve(baseUploadDir, dest);
+    try {
+      if (!fs.existsSync(fullPath)) {
+        fs.mkdirSync(fullPath, { recursive: true });
+      }
+    } catch {
+      // Ignored
+    }
+    cb(null, fullPath);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
