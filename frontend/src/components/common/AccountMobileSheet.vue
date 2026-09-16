@@ -1,153 +1,190 @@
 <template>
   <div>
-    <!-- Backdrop for click outside -->
-    <div
-      v-if="isOpen"
-      class="fixed inset-0 z-40"
-      @click="$emit('close')"
-    ></div>
-
+    <!-- Mobile Backdrop with smooth fade -->
     <transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="transform scale-95 opacity-0 translate-y-2"
-      enter-to-class="transform scale-100 opacity-100 translate-y-0"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="transform scale-100 opacity-100 translate-y-0"
-      leave-to-class="transform scale-95 opacity-0 translate-y-2"
+      enter-active-class="transition-opacity duration-300 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
     >
       <div
         v-if="isOpen"
-        class="absolute right-0 top-full mt-3 w-96 rounded-3xl bg-white border border-slate-200/80 shadow-2xl z-50 overflow-hidden"
+        class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs"
+        @click="$emit('close')"
+      ></div>
+    </transition>
+
+    <!-- Slide-up Bottom Sheet -->
+    <transition
+      enter-active-class="transition-transform duration-300 cubic-bezier(0.16, 1, 0.3, 1)"
+      enter-from-class="translate-y-full"
+      enter-to-class="translate-y-0"
+      leave-active-class="transition-transform duration-200 ease-in"
+      leave-from-class="translate-y-0"
+      leave-to-class="translate-y-full"
+    >
+      <div
+        v-if="isOpen"
+        class="fixed inset-x-0 bottom-0 z-50 w-full max-h-[88vh] rounded-t-[32px] bg-white shadow-2xl flex flex-col border-t border-slate-200/80 overflow-hidden"
         @click.stop
       >
-        <!-- Shopee Style Header: Profile & Rank Banner -->
-        <div class="relative bg-gradient-to-br from-rose-600 via-rose-500 to-rose-700 p-5 text-white">
-          <div class="flex items-center gap-3.5">
-            <!-- Avatar -->
-            <div class="w-13 h-13 rounded-2xl bg-white/20 p-0.5 backdrop-blur-md shadow-sm shrink-0">
-              <div class="w-12 h-12 rounded-[14px] bg-white flex items-center justify-center text-rose-600 font-extrabold text-xl shadow-inner">
+        <!-- Top Profile & Rank Banner (Shopee / Superapp Style) -->
+        <div class="relative bg-gradient-to-br from-rose-600 via-rose-500 to-rose-700 px-5 pt-3 pb-5 text-white shrink-0">
+          <!-- Grab Handle -->
+          <div class="w-12 h-1.5 bg-white/40 rounded-full mx-auto mb-3"></div>
+
+          <!-- Close Button -->
+          <button
+            type="button"
+            class="absolute top-3.5 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center backdrop-blur-md active:scale-95 transition"
+            aria-label="Đóng bảng tài khoản"
+            @click="$emit('close')"
+          >
+            <X class="w-4 h-4" />
+          </button>
+
+          <!-- User Info Row -->
+          <div class="flex items-center gap-3.5 pr-8">
+            <div class="w-14 h-14 rounded-2xl bg-white/20 p-0.5 backdrop-blur-md shadow-sm shrink-0">
+              <div class="w-13 h-13 rounded-[14px] bg-white flex items-center justify-center text-rose-600 font-extrabold text-xl shadow-inner">
                 {{ userInitials }}
               </div>
             </div>
 
-            <!-- Name & Info -->
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <h3 class="font-extrabold text-base truncate">{{ authStore.userName }}</h3>
-              </div>
+              <h3 class="font-extrabold text-lg text-white truncate leading-tight">
+                {{ authStore.userName }}
+              </h3>
               <p class="text-xs text-rose-100/90 truncate font-mono mt-0.5">
                 {{ authStore.user?.phone || authStore.user?.email || 'Khách hàng thân thiết' }}
               </p>
-              
-              <!-- Rank Tag -->
-              <div class="mt-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-[10px] font-bold tracking-wide">
+              <div class="mt-2 inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-[11px] font-bold">
                 <span>⭐</span>
                 <span>{{ loyalty?.rank?.label || 'Thành viên Bếp Út Hân' }}</span>
               </div>
             </div>
           </div>
 
-          <!-- Loyalty & Points Pill (Shopee Xu style) -->
-          <div class="mt-4 bg-white/15 backdrop-blur-md rounded-2xl p-3 border border-white/20 flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center font-extrabold text-sm shadow-xs">
+          <!-- Shopee Xu / Points Card -->
+          <div class="mt-4 bg-white/15 backdrop-blur-md rounded-2xl p-3.5 border border-white/25 flex items-center justify-between gap-3 shadow-inner">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center font-extrabold text-base shadow-xs shrink-0">
                 🪙
               </div>
               <div>
-                <div class="text-[11px] text-rose-100">Kho Điểm Thưởng:</div>
-                <div class="font-mono font-extrabold text-sm text-white">
-                  {{ (loyalty?.points?.available || 0).toLocaleString('vi-VN') }} điểm
+                <div class="text-[11px] text-rose-100 font-medium">Kho Điểm Thưởng:</div>
+                <div class="font-mono font-extrabold text-base text-white leading-tight">
+                  {{ (loyalty?.points?.available || 0).toLocaleString('vi-VN') }}
+                  <span class="text-xs font-normal opacity-90">điểm</span>
                 </div>
               </div>
             </div>
             <div class="text-right">
-              <span class="text-[10px] bg-white text-rose-700 font-bold px-2 py-1 rounded-lg shadow-xs">
+              <span class="text-xs bg-white text-rose-700 font-extrabold px-3 py-1 rounded-xl shadow-xs inline-block">
                 = {{ formatVND((loyalty?.points?.available || 0) * 1000) }}
               </span>
             </div>
           </div>
         </div>
 
-        <!-- Navigation Links (Shopee Menu style) -->
-        <div class="p-3 space-y-1 text-xs">
+        <!-- Scrollable Navigation Menu -->
+        <div class="flex-1 overflow-y-auto overscroll-contain p-4 space-y-2.5">
           <!-- Đơn mua của tôi -->
           <router-link
             to="/don-hang-cua-toi"
-            class="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors group text-slate-800"
+            class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/80 hover:bg-rose-50/60 border border-slate-200/60 active:scale-[0.99] transition-all group"
             @click="$emit('close')"
           >
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 group-hover:scale-105 transition-transform">
-                <ShoppingBag class="w-4 h-4" />
+            <div class="flex items-center gap-3.5">
+              <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 shadow-2xs">
+                <ShoppingBag class="w-5 h-5" />
               </div>
               <div>
-                <div class="font-bold text-slate-900 group-hover:text-rose-600 transition-colors">Đơn hàng của tôi</div>
-                <div class="text-[11px] text-slate-500">Xem tiến độ món đang nấu & lịch sử đặt</div>
+                <div class="font-bold text-sm text-slate-900 group-hover:text-rose-600 transition-colors">
+                  Đơn hàng của tôi
+                </div>
+                <div class="text-[11px] text-slate-500">
+                  Xem tiến độ món đang nấu & lịch sử đặt
+                </div>
               </div>
             </div>
-            <ChevronRight class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight class="w-5 h-5 text-slate-400 group-hover:text-rose-500 transition-transform group-hover:translate-x-0.5" />
           </router-link>
 
           <!-- Tra cứu tiến độ đơn hàng -->
           <router-link
             to="/tra-cuu"
-            class="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors group text-slate-800"
+            class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/80 hover:bg-blue-50/60 border border-slate-200/60 active:scale-[0.99] transition-all group"
             @click="$emit('close')"
           >
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
-                <Bike class="w-4 h-4" />
+            <div class="flex items-center gap-3.5">
+              <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs">
+                <Bike class="w-5 h-5" />
               </div>
               <div>
-                <div class="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">Tra cứu tiến độ giao hàng</div>
-                <div class="text-[11px] text-slate-500">Theo dõi Shipper & bếp trực tiếp</div>
+                <div class="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors">
+                  Tra cứu tiến độ giao hàng
+                </div>
+                <div class="text-[11px] text-slate-500">
+                  Theo dõi Shipper & bếp trực tiếp
+                </div>
               </div>
             </div>
-            <ChevronRight class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight class="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-transform group-hover:translate-x-0.5" />
           </router-link>
 
           <!-- Sổ địa chỉ nhận hàng -->
           <router-link
             to="/tai-khoan/dia-chi"
-            class="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors group text-slate-800"
+            class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/60 border border-slate-200/60 active:scale-[0.99] transition-all group"
             @click="$emit('close')"
           >
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform">
-                <MapPin class="w-4 h-4" />
+            <div class="flex items-center gap-3.5">
+              <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
+                <MapPin class="w-5 h-5" />
               </div>
               <div>
-                <div class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Sổ địa chỉ nhận hàng</div>
-                <div class="text-[11px] text-slate-500">Lưu sẵn địa chỉ nhà riêng, công ty</div>
+                <div class="font-bold text-sm text-slate-900 group-hover:text-emerald-600 transition-colors">
+                  Sổ địa chỉ nhận hàng
+                </div>
+                <div class="text-[11px] text-slate-500">
+                  Lưu sẵn địa chỉ nhà riêng, công ty
+                </div>
               </div>
             </div>
-            <ChevronRight class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight class="w-5 h-5 text-slate-400 group-hover:text-emerald-500 transition-transform group-hover:translate-x-0.5" />
           </router-link>
 
-          <!-- Đổi mật khẩu -->
+          <!-- Đổi mật khẩu tài khoản -->
           <button
             type="button"
-            class="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors group text-slate-800 text-left"
+            class="w-full flex items-center justify-between p-3.5 rounded-2xl bg-slate-50/80 hover:bg-purple-50/60 border border-slate-200/60 active:scale-[0.99] transition-all group text-left"
             @click="openPasswordModal"
           >
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 group-hover:scale-105 transition-transform">
-                <KeyRound class="w-4 h-4" />
+            <div class="flex items-center gap-3.5">
+              <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 shadow-2xs">
+                <KeyRound class="w-5 h-5" />
               </div>
               <div>
-                <div class="font-bold text-slate-900 group-hover:text-purple-600 transition-colors">Đổi mật khẩu tài khoản</div>
-                <div class="text-[11px] text-slate-500">Bảo mật tài khoản thành viên</div>
+                <div class="font-bold text-sm text-slate-900 group-hover:text-purple-600 transition-colors">
+                  Đổi mật khẩu tài khoản
+                </div>
+                <div class="text-[11px] text-slate-500">
+                  Bảo mật tài khoản thành viên
+                </div>
               </div>
             </div>
-            <ChevronRight class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight class="w-5 h-5 text-slate-400 group-hover:text-purple-500 transition-transform group-hover:translate-x-0.5" />
           </button>
         </div>
 
-        <!-- Footer Action: Logout Trigger -->
-        <div class="p-3 bg-slate-50/80 border-t border-slate-100">
+        <!-- Logout Action Button -->
+        <div class="p-4 bg-slate-50/90 border-t border-slate-200/80 shrink-0 pb-8">
           <button
             type="button"
-            class="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl text-rose-600 hover:bg-rose-50 font-bold transition-colors text-xs"
+            class="w-full py-3 px-4 rounded-2xl bg-rose-50 hover:bg-rose-100/90 border border-rose-200 text-rose-600 font-extrabold text-sm flex items-center justify-center gap-2 active:scale-98 transition shadow-2xs"
             @click="promptLogout"
           >
             <LogOut class="w-4 h-4" />
@@ -160,10 +197,10 @@
     <!-- LOGOUT CONFIRMATION MODAL -->
     <div
       v-if="showLogoutConfirm"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-fade-in"
+      class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-fade-in"
       @click.self="showLogoutConfirm = false"
     >
-      <div class="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 text-center shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200">
+      <div class="bg-white rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200">
         <div class="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200/80 flex items-center justify-center text-rose-600 mx-auto shadow-xs">
           <LogOut class="w-7 h-7" />
         </div>
@@ -195,10 +232,10 @@
     <!-- CHANGE PASSWORD MODAL -->
     <div
       v-if="showPasswordModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-fade-in"
+      class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-fade-in"
       @click.self="showPasswordModal = false"
     >
-      <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
+      <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
         <div class="flex items-center justify-between border-b border-slate-100 pb-4">
           <div class="flex items-center gap-2.5">
             <div class="w-10 h-10 rounded-xl bg-purple-50 border border-purple-200/80 flex items-center justify-center text-purple-600">
@@ -278,7 +315,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue';
 import { useAuthStore } from '../../stores/authStore.js';
 import { formatVND } from '../../config/app.config.js';
 import { toast } from '../../utils/toast.js';
@@ -310,6 +347,19 @@ const pwdForm = reactive({
   currentPassword: '',
   newPassword: '',
   confirmPassword: '',
+});
+
+// Prevent body scroll when sheet is open
+watch(() => props.isOpen, (open) => {
+  if (open) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+});
+
+onBeforeUnmount(() => {
+  document.body.style.overflow = '';
 });
 
 const userInitials = computed(() => {
