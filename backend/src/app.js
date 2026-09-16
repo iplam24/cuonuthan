@@ -59,7 +59,9 @@ const potentialUploadDirs = [
 const uploadsDir = potentialUploadDirs.find((dir) => {
   try { return fs.existsSync(dir); } catch { return false; }
 }) || path.resolve(__dirname, '../uploads');
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', express.static(uploadsDir), (req, res) => {
+  res.redirect(`https://cuonuthan.pages.dev/uploads${req.path}`);
+});
 
 // Redirect trang chủ backend sang cổng Admin SPA
 app.get('/', (req, res) => {

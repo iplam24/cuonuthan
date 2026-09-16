@@ -55,8 +55,8 @@ export const appConfig = {
 export function getFullImageUrl(url) {
   if (!url) return '/food-placeholder.svg';
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('/')) return `${appConfig.backendUrl}${url}`;
-  return `${appConfig.backendUrl}/${url}`;
+  if (url.startsWith('/')) return url;
+  return `/${url}`;
 }
 
 export function formatVND(amount) {
